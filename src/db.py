@@ -66,11 +66,11 @@ class SqliteClient(DataBaseClient):
 
     def get_expenses_last(self, user_id: int) -> dict[int, Expense]:
         self._cur.execute(
-            f"SELECT ID, AMOUNT, CATEGORY_ID, USER_ID FROM expenses e WHERE USER_ID = {user_id} order by created_at desc limit 10"
+            f"SELECT ID, AMOUNT, CATEGORY_ID, USER_ID, COMMENT FROM expenses e WHERE USER_ID = {user_id} order by created_at desc limit 10"
         )
         expenses = {}
         for row in self._cur.fetchall():
-            expenses[row[0]] = Expense(row[1], row[2], row[3])
+            expenses[row[0]] = Expense(row[1], row[2], row[3], row[4])
         return expenses
 
     def del_row(self, id: int) -> None:

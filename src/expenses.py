@@ -57,5 +57,5 @@ class ExpenseManager:
     def _prepare_expense_message_last(self, expenses: dict[int, Expense]) -> str:
         message = "*Последние 10 расходов*:\n"
         for id, expense in expenses.items():
-            message += f"{self._categories[expense.category_id]}: {expense.amount} руб удалить /del{id}\n"
+            message += f"{self._categories[expense.category_id]} {expense.comment}: {expense.amount} руб удалить /del{id}\n"
         return message
