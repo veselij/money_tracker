@@ -9,6 +9,7 @@ from telegram.ext import (
     ContextTypes,
     ConversationHandler,
     MessageHandler,
+    PicklePersistence,
     filters,
 )
 
@@ -63,13 +64,10 @@ async def get_expenses_total(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if update.effective_user:
         expenses = expense_manger.get_expenses_total(int(update.effective_user.id))
         message, chart_data = prepare_expense_message(
-            expenses, expense_manger.get_categories()
+            expenses, expense_manger.get_categories(), int(update.effective_user.id)
         )
         chart = generate_chart(chart_data)
-        await context.bot.send_message(
-            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
-        )
-        await context.bot.send_photo(update.effective_user.id, chart)
+        await context.bot.send_photo(update.effective_user.id, chart, message)
     return AUTH
 
 
@@ -82,10 +80,7 @@ async def get_expenses_total_all(
             expenses, expense_manger.get_categories()
         )
         chart = generate_chart(chart_data)
-        await context.bot.send_message(
-            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
-        )
-        await context.bot.send_photo(update.effective_user.id, chart)
+        await context.bot.send_photo(update.effective_user.id, chart, message)
     return AUTH
 
 
@@ -168,9 +163,18 @@ def create_conversation_states(categories: dict) -> dict:
 
 
 def main() -> None:
-    bot = ApplicationBuilder().token(config.bot_token).build()
+    bot_persistence = PicklePersistence(filepath="persistance_states")
+
+    bot = (
+        ApplicationBuilder()
+        .token(config.bot_token)
+        .persistence(persistence=bot_persistence)
+        .build()
+    )
 
     conv_handler = ConversationHandler(
+        name="menu",
+        persistent=True,
         entry_points=[CommandHandler("start", start)],
         states=create_conversation_states(expense_manger._categories),
         fallbacks=[],

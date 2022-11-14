@@ -2,22 +2,24 @@ import io
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
-from telegram import PhotoSize
 
 from db import Expense
 
 
 def prepare_expense_message(
-    expenses: list[Expense], categories: dict[int, str]
+    expenses: list[Expense], categories: dict[int, str], user_id: int | None = None
 ) -> tuple[str, dict[str, int]]:
-    message = "*Всего потрачено с начала месяца*:\n"
+    if user_id:
+        message = "Тобой потрачено с начала месяца:\n\n"
+    else:
+        message = "Вместе потрачено с начала месяца:\n\n"
     total = 0
     chart_data: dict[str, int] = defaultdict(int)
     for expense in expenses:
         message += f"{categories[expense.category_id]}: {expense.amount} руб\n"
         total += expense.amount
         chart_data[categories[expense.category_id]] += expense.amount
-    message += f"*Всего потрачено*: {total} руб"
+    message += f"\nВсего потрачено: {total} руб"
     return message, chart_data
 
 
