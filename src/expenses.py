@@ -27,35 +27,19 @@ class ExpenseManager:
         id = self._db.insert(expense)
         return id
 
-    def get_expenses_total(self, user_id: int) -> str:
-        expenses = self._db.get_expenses_total(user_id, calculate_date())
-        message = self._prepare_expense_message(expenses)
-        return message
+    def get_expenses_total(self, user_id: int | None = None) -> list[Expense]:
+        expenses = self._db.get_expenses_total(calculate_date(), user_id)
+        return expenses
 
-    def get_expenses_last(self, user_id: int) -> str:
+    def get_expenses_last(self, user_id: int) -> dict[int, Expense]:
         expenses = self._db.get_expenses_last(user_id)
-        message = self._prepare_expense_message_last(expenses)
-        return message
+        return expenses
 
     def del_expense(self, id: int) -> None:
         self._db.del_row(id)
 
+    def get_categories(self) -> dict[int, str]:
+        return self._categories
+
     def _load_categories(self) -> None:
         self._db.load_categories(self._categories)
-
-    def _prepare_expense_message(self, expenses: list[Expense]) -> str:
-        message = "*Всего потрачено с начала месяца*:\n"
-        total = 0
-        for expense in expenses:
-            message += (
-                f"{self._categories[expense.category_id]}: {expense.amount} руб\n"
-            )
-            total += expense.amount
-        message += f"*Всего потрачено*: {total} руб"
-        return message
-
-    def _prepare_expense_message_last(self, expenses: dict[int, Expense]) -> str:
-        message = "*Последние 10 расходов*:\n"
-        for id, expense in expenses.items():
-            message += f"{self._categories[expense.category_id]} {expense.comment}: {expense.amount} руб удалить /del{id}\n\n"
-        return message

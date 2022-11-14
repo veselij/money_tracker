@@ -17,7 +17,7 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
-    def get_expenses_total(self, user_id: int, start: str) -> list[Expense]:
+    def get_expenses_total(self, start: str, user_id: int | None) -> list[Expense]:
         ...
 
     @abstractmethod
@@ -55,10 +55,15 @@ class SqliteClient(DataBaseClient):
         self._conn.commit()
         return self._cur.lastrowid or -1
 
-    def get_expenses_total(self, user_id: int, start: str) -> list[Expense]:
-        self._cur.execute(
-            f"SELECT CATEGORY_ID, sum(AMOUNT), USER_ID as AMOUNT FROM expenses e WHERE USER_ID = {user_id} and created_at >= '{start}'  GROUP BY CATEGORY_ID, USER_ID"
-        )
+    def get_expenses_total(self, start: str, user_id: int | None) -> list[Expense]:
+        if user_id:
+            self._cur.execute(
+                f"SELECT CATEGORY_ID, sum(AMOUNT), USER_ID FROM expenses e WHERE USER_ID = {user_id} and created_at >= '{start}' GROUP BY CATEGORY_ID, USER_ID"
+            )
+        else:
+            self._cur.execute(
+                f"SELECT CATEGORY_ID, sum(AMOUNT), -1 FROM expenses e WHERE created_at >= '{start}' GROUP BY CATEGORY_ID"
+            )
         expenses = []
         for row in self._cur.fetchall():
             expenses.append(Expense(row[1], row[0], row[2]))

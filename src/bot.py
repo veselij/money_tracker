@@ -15,6 +15,11 @@ from telegram.ext import (
 from config import config
 from db import SqliteClient
 from expenses import ExpenseManager
+from formater import (
+    generate_chart,
+    prepare_expense_message,
+    prepare_expense_message_last,
+)
 
 AUTH = 0
 
@@ -31,6 +36,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         [
             BotCommand("add", "Записать расход"),
             BotCommand("total", "Посмотреть расходы"),
+            BotCommand("total_all", "Посмотреть расходы всех"),
             BotCommand("last", "Посмотреть последние 10 расходов"),
         ]
     )
@@ -55,16 +61,40 @@ async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def get_expenses_total(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.effective_user:
-        message = expense_manger.get_expenses_total(int(update.effective_user.id))
+        expenses = expense_manger.get_expenses_total(int(update.effective_user.id))
+        message, chart_data = prepare_expense_message(
+            expenses, expense_manger.get_categories()
+        )
+        chart = generate_chart(chart_data)
         await context.bot.send_message(
             update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
         )
+        await context.bot.send_photo(update.effective_user.id, chart)
+    return AUTH
+
+
+async def get_expenses_total_all(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
+    if update.effective_user:
+        expenses = expense_manger.get_expenses_total()
+        message, chart_data = prepare_expense_message(
+            expenses, expense_manger.get_categories()
+        )
+        chart = generate_chart(chart_data)
+        await context.bot.send_message(
+            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
+        )
+        await context.bot.send_photo(update.effective_user.id, chart)
     return AUTH
 
 
 async def get_last_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.effective_user:
-        message = expense_manger.get_expenses_last(update.effective_user.id)
+        expenses = expense_manger.get_expenses_last(update.effective_user.id)
+        message = prepare_expense_message_last(
+            expenses, expense_manger.get_categories()
+        )
         await context.bot.send_message(
             update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
         )
@@ -121,6 +151,7 @@ def create_conversation_states(categories: dict) -> dict:
     ]
     handlers.append(CommandHandler("add", add_expense))
     handlers.append(CommandHandler("total", get_expenses_total))
+    handlers.append(CommandHandler("total_all", get_expenses_total_all))
     handlers.append(CommandHandler("last", get_last_expenses))
     handlers.append(MessageHandler(filters.Regex("^/del.*"), del_expense))
     states = {AUTH: handlers}
