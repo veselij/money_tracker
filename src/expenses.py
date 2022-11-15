@@ -39,8 +39,15 @@ class ExpenseManager:
     def del_expense(self, id: int) -> None:
         self._db.del_row(id)
 
+    def insert_category(self, category: str) -> None:
+        self._db.insert_category(category)
+
+    def delete_category(self, category: str) -> None:
+        self._db.delete_category(category)
+
     def get_categories(self) -> dict[int, str]:
         return self._categories
 
     def _load_categories(self) -> None:
+        self._categories = {}
         self._db.load_categories(self._categories)

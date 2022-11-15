@@ -42,6 +42,14 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
+    def insert_category(self, category: str) -> None:
+        ...
+
+    @abstractmethod
+    def delete_category(self, category: str) -> None:
+        ...
+
+    @abstractmethod
     def _create_database(self) -> None:
         ...
 
@@ -91,6 +99,14 @@ class SqliteClient(DataBaseClient):
 
     def del_row(self, id: int) -> None:
         self._cur.execute(f"DELETE FROM expenses WHERE ID = {id}")
+        self._conn.commit()
+
+    def insert_category(self, category: str) -> None:
+        self._cur.execute(f"INSERT INTO categories(CATEGORY) VALUES ('{category}')")
+        self._conn.commit()
+
+    def delete_category(self, category: str) -> None:
+        self._cur.execute(f"DELETE FROM categories WHERE CATEGORY = '{category}'")
         self._conn.commit()
 
     def _create_database(self) -> None:

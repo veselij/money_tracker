@@ -101,63 +101,71 @@ async def del_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return AUTH
 
 
-def create_callback_func_choosing_category(category: int):
-    async def callback_func(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-        query = update.callback_query
-        await query.answer()
-        await query.message.reply_markdown_v2(
-            "Напишите сумму расхода и комментарий для категории *{0}*".format(
-                expense_manger._categories[category]
-            )
-        )
-        return category
-
-    return callback_func
+async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    category = update.message.text.replace("/catadd", "").strip()
+    expense_manger.insert_category(category)
+    await update.message.reply_markdown_v2(f"Категория {category} добавлена")
+    expense_manger._load_categories()
+    return AUTH
 
 
-def create_callback_func_inserting_expence(category: int):
-    async def callback_func(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-        text = re.match(r"(\d+)(.*)", update.message.text)
-        if not text or not text.group(0) or not text.group(1):
-            await update.message.reply_markdown_v2("неправильный формат")
-            return category
-        if update.effective_user:
-            id = expense_manger.save_expense(
-                int(text.group(1)), category, text.group(2), update.effective_user.id
-            )
-            await update.message.reply_markdown_v2(
-                "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
-                    text.group(1), expense_manger._categories[category], id
-                )
-            )
+async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    category = update.message.text.replace("/catdel", "").strip()
+    expense_manger.delete_category(category)
+    await update.message.reply_markdown_v2(f"Категория {category} удалена")
+    expense_manger._load_categories()
+    return AUTH
+
+
+async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    text = re.match(r"(\d+)(.*)", update.message.text)
+    if not text or not text.group(0) or not text.group(1):
+        await update.message.reply_markdown_v2("неправильный формат")
         return AUTH
+    if not update.effective_user:
+        return AUTH
+    if not context.user_data:
+        await update.message.reply_markdown_v2("сначала выберете категорию")
+        return AUTH
+    category = context.user_data["category"]
+    id = expense_manger.save_expense(
+        int(text.group(1)), category, text.group(2), update.effective_user.id
+    )
+    await update.message.reply_markdown_v2(
+        "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
+            text.group(1), expense_manger._categories[category], id
+        )
+    )
+    context.user_data.clear()
+    return AUTH
 
-    return callback_func
+
+async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    query = update.callback_query
+    id = int(query.data)
+    await query.answer()
+    context.user_data["category"] = id
+    await query.message.reply_markdown_v2(
+        "Напишите сумму расхода и комментарий для категории *{0}*".format(
+            expense_manger._categories[id]
+        )
+    )
+    return AUTH
 
 
-def create_conversation_states(categories: dict) -> dict:
+def create_conversation_states() -> dict:
     handlers = [
-        CallbackQueryHandler(
-            create_callback_func_choosing_category(c), pattern=re.compile(f"^{c}$")
-        )
-        for c in categories.keys()
+        CallbackQueryHandler(category_callback),
+        CommandHandler("add", add_expense),
+        CommandHandler("total", get_expenses_total),
+        CommandHandler("total_all", get_expenses_total_all),
+        CommandHandler("last", get_last_expenses),
+        MessageHandler(filters.Regex("^/del.*"), del_expense),
+        MessageHandler(filters.Regex("^/catadd .*"), add_category),
+        MessageHandler(filters.Regex("^/catdel .*"), delete_category),
+        MessageHandler(filters.TEXT & ~filters.COMMAND, insert_expense),
     ]
-    handlers.append(CommandHandler("add", add_expense))
-    handlers.append(CommandHandler("total", get_expenses_total))
-    handlers.append(CommandHandler("total_all", get_expenses_total_all))
-    handlers.append(CommandHandler("last", get_last_expenses))
-    handlers.append(MessageHandler(filters.Regex("^/del.*"), del_expense))
-    states = {AUTH: handlers}
-
-    for c in categories:
-        states[c] = handlers.copy()
-        states[c].append(
-            MessageHandler(
-                filters.TEXT & ~filters.COMMAND,
-                create_callback_func_inserting_expence(c),
-            )
-        )
-    return states
+    return {AUTH: handlers}
 
 
 def main() -> None:
@@ -174,7 +182,7 @@ def main() -> None:
         name="menu",
         persistent=True,
         entry_points=[CommandHandler("start", start)],
-        states=create_conversation_states(expense_manger._categories),
+        states=create_conversation_states(),
         fallbacks=[],
     )
     bot.add_handler(conv_handler)
