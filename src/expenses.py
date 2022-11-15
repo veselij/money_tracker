@@ -1,6 +1,7 @@
 from datetime import datetime
 
-from db import DataBaseClient, Expense
+from config import MONTH_START_DAY
+from db import DataBaseClient, Expense, ExpenseReport
 
 
 def calculate_date() -> str:
@@ -8,10 +9,10 @@ def calculate_date() -> str:
     year = today.year
     month = today.month
     day = today.day
-    if day >= 10:
-        return f"{year}-{month}-10"
+    if day >= MONTH_START_DAY:
+        return f"{year}-{month}-{MONTH_START_DAY}"
     else:
-        return f"{year}-{month-1}-10"
+        return f"{year}-{month-1}-{MONTH_START_DAY}"
 
 
 class ExpenseManager:
@@ -27,11 +28,11 @@ class ExpenseManager:
         id = self._db.insert(expense)
         return id
 
-    def get_expenses_total(self, user_id: int | None = None) -> list[Expense]:
+    def get_expenses_total(self, user_id: int | None = None) -> list[ExpenseReport]:
         expenses = self._db.get_expenses_total(calculate_date(), user_id)
         return expenses
 
-    def get_expenses_last(self, user_id: int) -> dict[int, Expense]:
+    def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
         expenses = self._db.get_expenses_last(user_id)
         return expenses
 

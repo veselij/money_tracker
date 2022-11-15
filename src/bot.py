@@ -64,7 +64,7 @@ async def get_expenses_total(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if update.effective_user:
         expenses = expense_manger.get_expenses_total(int(update.effective_user.id))
         message, chart_data = prepare_expense_message(
-            expenses, expense_manger.get_categories(), int(update.effective_user.id)
+            expenses, int(update.effective_user.id)
         )
         chart = generate_chart(chart_data)
         await context.bot.send_photo(update.effective_user.id, chart, message)
@@ -76,9 +76,7 @@ async def get_expenses_total_all(
 ) -> int:
     if update.effective_user:
         expenses = expense_manger.get_expenses_total()
-        message, chart_data = prepare_expense_message(
-            expenses, expense_manger.get_categories()
-        )
+        message, chart_data = prepare_expense_message(expenses)
         chart = generate_chart(chart_data)
         await context.bot.send_photo(update.effective_user.id, chart, message)
     return AUTH

@@ -1,6 +1,8 @@
 import os
 from dataclasses import dataclass
 
+MONTH_START_DAY = 10
+
 
 @dataclass
 class Config:

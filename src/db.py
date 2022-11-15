@@ -11,17 +11,26 @@ class Expense:
     comment: str = ""
 
 
+@dataclass
+class ExpenseReport:
+    amount: int
+    category: str
+    comment: str = ""
+
+
 class DataBaseClient(ABC):
     @abstractmethod
     def insert(self, expense: Expense) -> int:
         ...
 
     @abstractmethod
-    def get_expenses_total(self, start: str, user_id: int | None) -> list[Expense]:
+    def get_expenses_total(
+        self, start: str, user_id: int | None
+    ) -> list[ExpenseReport]:
         ...
 
     @abstractmethod
-    def get_expenses_last(self, user_id: int) -> dict[int, Expense]:
+    def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
         ...
 
     @abstractmethod
@@ -55,27 +64,29 @@ class SqliteClient(DataBaseClient):
         self._conn.commit()
         return self._cur.lastrowid or -1
 
-    def get_expenses_total(self, start: str, user_id: int | None) -> list[Expense]:
+    def get_expenses_total(
+        self, start: str, user_id: int | None
+    ) -> list[ExpenseReport]:
         if user_id:
             self._cur.execute(
-                f"SELECT CATEGORY_ID, sum(AMOUNT), USER_ID FROM expenses e WHERE USER_ID = {user_id} and created_at >= '{start}' GROUP BY CATEGORY_ID, USER_ID"
+                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' GROUP BY CATEGORY"
             )
         else:
             self._cur.execute(
-                f"SELECT CATEGORY_ID, sum(AMOUNT), -1 FROM expenses e WHERE created_at >= '{start}' GROUP BY CATEGORY_ID"
+                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' GROUP BY CATEGORY"
             )
         expenses = []
         for row in self._cur.fetchall():
-            expenses.append(Expense(row[1], row[0], row[2]))
+            expenses.append(ExpenseReport(*row))
         return expenses
 
-    def get_expenses_last(self, user_id: int) -> dict[int, Expense]:
+    def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
         self._cur.execute(
-            f"SELECT ID, AMOUNT, CATEGORY_ID, USER_ID, COMMENT FROM expenses e WHERE USER_ID = {user_id} order by created_at desc limit 10"
+            f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} order by created_at desc limit 10"
         )
         expenses = {}
         for row in self._cur.fetchall():
-            expenses[row[0]] = Expense(row[1], row[2], row[3], row[4])
+            expenses[row[0]] = ExpenseReport(*row[1:])
         return expenses
 
     def del_row(self, id: int) -> None:
