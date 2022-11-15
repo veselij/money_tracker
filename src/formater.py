@@ -40,7 +40,7 @@ def generate_chart(data: dict[str, int]) -> bytes:
     ax.pie(list(data.values()), labels=list(data.keys()))
     ax.axis("equal")
     b = io.BytesIO()
-    fig.set_facecolor("grey")
+    fig.set_facecolor("lightgrey")
     plt.savefig(b, format="png")
     b.seek(0)
     plt.close()
