@@ -31,7 +31,7 @@ def prepare_expense_message_last(
 ) -> str:
     message = "*Последние 10 расходов*:\n\n"
     for id, expense in expenses.items():
-        message += f"{expense.category} {expense.comment}: {expense.amount} руб удалить /del{id}\n\n"
+        message += f"*{expense.category}* ({expense.comment}): {expense.amount} руб [удалить /del{id}]\n\n"
     return message
 
 
