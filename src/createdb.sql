@@ -13,5 +13,3 @@ insert or ignore into categories(CATEGORY) values
         ("Алко"),
         ("Офис"),
         ("Прочее");
-
-alter table categories add column if not exists activerecord INTEGER DEFAULT 1;
