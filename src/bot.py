@@ -140,6 +140,36 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     return AUTH
 
 
+async def manual_insert_expense(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
+    text = update.message.text.split(",")
+    amount, category, comment = "", "", ""
+    if len(text) == 3:
+        _, amount, category = text
+    elif len(text) == 4:
+        _, amount, category, comment = text
+    else:
+        await update.message.reply_markdown_v2("неправильный формат")
+        return AUTH
+    categories_reversed = {v: k for k, v in expense_manger.get_categories().items()}
+    if not update.effective_user:
+        return AUTH
+    id = expense_manger.save_expense(
+        int(amount),
+        categories_reversed[category.strip()],
+        comment.strip(),
+        update.effective_user.id,
+    )
+    await update.message.reply_markdown_v2(
+        "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
+            amount, category, id
+        )
+    )
+    context.user_data.clear()
+    return AUTH
+
+
 async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     id = int(query.data)
@@ -160,9 +190,12 @@ def create_conversation_states() -> dict:
         CommandHandler("total", get_expenses_total),
         CommandHandler("total_all", get_expenses_total_all),
         CommandHandler("last", get_last_expenses),
-        MessageHandler(filters.Regex("^/del.*"), del_expense),
-        MessageHandler(filters.Regex("^/catadd .*"), add_category),
-        MessageHandler(filters.Regex("^/catdel .*"), delete_category),
+        MessageHandler(filters.Regex("^/del.*") & filters.COMMAND, del_expense),
+        MessageHandler(filters.Regex("^/catadd .*") & filters.COMMAND, add_category),
+        MessageHandler(filters.Regex("^/catdel .*") & filters.COMMAND, delete_category),
+        MessageHandler(
+            filters.Regex("^/offadd,.*") & filters.COMMAND, manual_insert_expense
+        ),
         MessageHandler(filters.TEXT & ~filters.COMMAND, insert_expense),
     ]
     return {AUTH: handlers}

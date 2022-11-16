@@ -61,7 +61,7 @@ class SqliteClient(DataBaseClient):
         self._create_database()
 
     def load_categories(self, categories: dict[int, str]) -> None:
-        self._cur.execute("SELECT * from categories")
+        self._cur.execute("SELECT * from categories WHERE activerecord = 1")
         for row in self._cur.fetchall():
             categories[row[0]] = row[1]
 
@@ -102,11 +102,15 @@ class SqliteClient(DataBaseClient):
         self._conn.commit()
 
     def insert_category(self, category: str) -> None:
-        self._cur.execute(f"INSERT INTO categories(CATEGORY) VALUES ('{category}')")
+        self._cur.execute(
+            f"INSERT OR REPLACE INTO categories(CATEGORY, activerecord) VALUES ('{category}', 1)"
+        )
         self._conn.commit()
 
     def delete_category(self, category: str) -> None:
-        self._cur.execute(f"DELETE FROM categories WHERE CATEGORY = '{category}'")
+        self._cur.execute(
+            f"UPDATE categories SET activerecord = 0 WHERE CATEGORY = '{category}'"
+        )
         self._conn.commit()
 
     def _create_database(self) -> None:
