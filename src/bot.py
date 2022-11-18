@@ -40,7 +40,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             BotCommand("add", "Записать расход"),
             BotCommand("total", "Посмотреть расходы"),
             BotCommand("total_all", "Посмотреть расходы всех"),
-            BotCommand("last", "Посмотреть последние 10 расходов"),
+            BotCommand("last", "Посмотреть все расходы с начала мес"),
         ]
     )
     await update.message.reply_text("Добро пожаловать в Money Tracker {0}".format(id))
