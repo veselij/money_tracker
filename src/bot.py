@@ -1,3 +1,4 @@
+import logging
 import re
 
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -22,6 +23,7 @@ from formater import (
     prepare_expense_message_last,
 )
 
+logger = logging.getLogger(__name__)
 AUTH = 0
 
 db_client = SqliteClient()
@@ -85,9 +87,7 @@ async def get_expenses_total_all(
 async def get_last_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.effective_user:
         expenses = expense_manger.get_expenses_last(update.effective_user.id)
-        message = prepare_expense_message_last(
-            expenses, expense_manger.get_categories()
-        )
+        message = prepare_expense_message_last(expenses)
         await context.bot.send_message(
             update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
         )
@@ -166,7 +166,7 @@ async def manual_insert_expense(
             amount, category, id
         )
     )
-    context.user_data.clear()
+    context.user_data.clear()  # type: ignore
     return AUTH
 
 
@@ -174,7 +174,7 @@ async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     query = update.callback_query
     id = int(query.data)
     await query.answer()
-    context.user_data["category"] = id
+    context.user_data["category"] = id  # type: ignore
     await query.message.reply_markdown_v2(
         "Напишите сумму расхода и комментарий для категории *{0}*".format(
             expense_manger._categories[id]
@@ -224,4 +224,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        logger.exception(e)

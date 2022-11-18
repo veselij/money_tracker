@@ -33,7 +33,7 @@ class ExpenseManager:
         return expenses
 
     def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
-        expenses = self._db.get_expenses_last(user_id)
+        expenses = self._db.get_expenses_last(user_id, calculate_date())
         return expenses
 
     def del_expense(self, id: int) -> None:

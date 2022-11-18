@@ -30,7 +30,7 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
-    def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
+    def get_expenses_last(self, user_id: int, start: str) -> dict[int, ExpenseReport]:
         ...
 
     @abstractmethod
@@ -67,7 +67,7 @@ class SqliteClient(DataBaseClient):
 
     def insert(self, expense: Expense) -> int:
         self._cur.execute(
-            f"INSERT INTO expenses(AMOUNT, COMMENT, CATEGORY_ID, USER_ID) VALUES ({expense.amount}, '{expense.comment}', {expense.category_id}, {expense.user_id})"
+            f"INSERT INTO expenses(AMOUNT, COMMENT, CATEGORY_ID, USER_ID) VALUES ({expense.amount}, '{expense.comment.strip()}', {expense.category_id}, {expense.user_id})"
         )
         self._conn.commit()
         return self._cur.lastrowid or -1
@@ -88,9 +88,9 @@ class SqliteClient(DataBaseClient):
             expenses.append(ExpenseReport(*row))
         return expenses
 
-    def get_expenses_last(self, user_id: int) -> dict[int, ExpenseReport]:
+    def get_expenses_last(self, user_id: int, start: str) -> dict[int, ExpenseReport]:
         self._cur.execute(
-            f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} order by created_at desc limit 10"
+            f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by created_at desc"
         )
         expenses = {}
         for row in self._cur.fetchall():

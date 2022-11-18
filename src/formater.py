@@ -26,12 +26,17 @@ def prepare_expense_message(
     return message, chart_data
 
 
-def prepare_expense_message_last(
-    expenses: dict[int, ExpenseReport], categories: dict[int, str]
-) -> str:
-    message = "*Последние 10 расходов*:\n\n"
-    for id, expense in expenses.items():
-        message += f"*{expense.category}* \\({expense.comment}\\): {expense.amount} руб [удалить /del{id}]\n\n"
+def prepare_expense_message_last(expenses: dict[int, ExpenseReport]) -> str:
+    message = "*Расходы за  месяц*:\n\n"
+    for i, (id, expense) in enumerate(expenses.items(), 1):
+        if expense.comment:
+            message += f"{i}.*{expense.category}*: {expense.amount/1000:0.1f}кр \\({expense.comment}\\)/del{id}\n"
+        else:
+            message += (
+                f"{i}.*{expense.category}*: {expense.amount/1000:0.1f}кр /del{id}\n"
+            )
+    message = message.replace(".", "\\.")
+
     return message
 
 
