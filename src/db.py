@@ -95,11 +95,11 @@ class SqliteClient(DataBaseClient):
     ) -> dict[int, ExpenseReport]:
         if user_id:
             self._cur.execute(
-                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by AMOUNT desc"
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by CATEGORY, AMOUNT desc"
             )
         else:
             self._cur.execute(
-                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' order by AMOUNT desc"
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' order by CATEGORY, AMOUNT desc"
             )
         expenses = {}
         for row in self._cur.fetchall():

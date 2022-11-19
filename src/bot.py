@@ -2,7 +2,6 @@ import logging
 import re
 
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.constants import ParseMode
 from telegram.ext import (
     ApplicationBuilder,
     CallbackQueryHandler,
@@ -38,10 +37,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await context.bot.set_my_commands(
         [
             BotCommand("add", "Записать расход"),
-            BotCommand("total", "Посмотреть сумму своих расходов"),
-            BotCommand("total_all", "Посмотреть сумму общих расходов"),
-            BotCommand("last", "Посмотреть свои расходы с начала мес"),
-            BotCommand("last_all", "Посмотреть общие расходы с начала мес"),
+            BotCommand("total", "Свои расходы"),
+            BotCommand("total_all", "Общие расходы"),
+            BotCommand("last", "Свои расходы список"),
+            BotCommand("last_all", "Общие расходы список"),
         ]
     )
     await update.message.reply_text("Добро пожаловать в Money Tracker {0}".format(id))
@@ -88,10 +87,8 @@ async def get_expenses_total_all(
 async def get_last_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.effective_user:
         expenses = expense_manger.get_expenses_last(update.effective_user.id)
-        message = prepare_expense_message_last(expenses)
-        await context.bot.send_message(
-            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
-        )
+        message = prepare_expense_message_last(expenses, update.effective_user.id)
+        await context.bot.send_message(update.effective_user.id, message)
     return AUTH
 
 
@@ -101,9 +98,7 @@ async def get_last_expenses_all(
     if update.effective_user:
         expenses = expense_manger.get_expenses_last()
         message = prepare_expense_message_last(expenses)
-        await context.bot.send_message(
-            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
-        )
+        await context.bot.send_message(update.effective_user.id, message)
     return AUTH
 
 
@@ -233,7 +228,6 @@ def main() -> None:
         fallbacks=[],
     )
     bot.add_handler(conv_handler)
-
     bot.run_polling()
 
 
