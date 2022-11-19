@@ -30,7 +30,9 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
-    def get_expenses_last(self, user_id: int, start: str) -> dict[int, ExpenseReport]:
+    def get_expenses_last(
+        self, user_id: int | None, start: str
+    ) -> dict[int, ExpenseReport]:
         ...
 
     @abstractmethod
@@ -88,10 +90,17 @@ class SqliteClient(DataBaseClient):
             expenses.append(ExpenseReport(*row))
         return expenses
 
-    def get_expenses_last(self, user_id: int, start: str) -> dict[int, ExpenseReport]:
-        self._cur.execute(
-            f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by created_at desc"
-        )
+    def get_expenses_last(
+        self, user_id: int | None, start: str
+    ) -> dict[int, ExpenseReport]:
+        if user_id:
+            self._cur.execute(
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by AMOUNT desc"
+            )
+        else:
+            self._cur.execute(
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' order by AMOUNT desc"
+            )
         expenses = {}
         for row in self._cur.fetchall():
             expenses[row[0]] = ExpenseReport(*row[1:])

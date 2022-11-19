@@ -38,9 +38,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await context.bot.set_my_commands(
         [
             BotCommand("add", "Записать расход"),
-            BotCommand("total", "Посмотреть расходы"),
-            BotCommand("total_all", "Посмотреть расходы всех"),
-            BotCommand("last", "Посмотреть все расходы с начала мес"),
+            BotCommand("total", "Посмотреть сумму своих расходов"),
+            BotCommand("total_all", "Посмотреть сумму общих расходов"),
+            BotCommand("last", "Посмотреть свои расходы с начала мес"),
+            BotCommand("last_all", "Посмотреть общие расходы с начала мес"),
         ]
     )
     await update.message.reply_text("Добро пожаловать в Money Tracker {0}".format(id))
@@ -87,6 +88,18 @@ async def get_expenses_total_all(
 async def get_last_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if update.effective_user:
         expenses = expense_manger.get_expenses_last(update.effective_user.id)
+        message = prepare_expense_message_last(expenses)
+        await context.bot.send_message(
+            update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
+        )
+    return AUTH
+
+
+async def get_last_expenses_all(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> int:
+    if update.effective_user:
+        expenses = expense_manger.get_expenses_last()
         message = prepare_expense_message_last(expenses)
         await context.bot.send_message(
             update.effective_user.id, message, parse_mode=ParseMode.MARKDOWN_V2
@@ -190,6 +203,7 @@ def create_conversation_states() -> dict:
         CommandHandler("total", get_expenses_total),
         CommandHandler("total_all", get_expenses_total_all),
         CommandHandler("last", get_last_expenses),
+        CommandHandler("last_all", get_last_expenses_all),
         MessageHandler(filters.Regex("^/del.*") & filters.COMMAND, del_expense),
         MessageHandler(filters.Regex("^/catadd .*") & filters.COMMAND, add_category),
         MessageHandler(filters.Regex("^/catdel .*") & filters.COMMAND, delete_category),
