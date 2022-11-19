@@ -37,10 +37,9 @@ def prepare_expense_message_last(
     message = get_init_message(user_id)
     for i, (id, expense) in enumerate(expenses.items(), 1):
         if expense.comment:
-            message += f"{i:02}.*{expense.category}*: {expense.amount/1000:0.1f}т.р. \\({expense.comment}\\) /del{id}\n"
+            message += f"{i:02}.*{expense.category}*: {expense.amount/1000:0.1f}т.р. ({expense.comment}) /del{id}\n"
         else:
             message += f"{i:02}.*{expense.category}*: {expense.amount/1000:0.1f}т.р. /del{id}\n"
-    message = message.replace(".", "\\.")
 
     return message
 

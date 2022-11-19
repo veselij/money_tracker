@@ -110,14 +110,14 @@ async def get_last_expenses_all(
 async def del_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     id = int(update.message.text.replace("/del", ""))
     expense_manger.del_expense(id)
-    await update.message.reply_markdown_v2(f"Расход номер {id} удален")
+    await update.message.reply_text(f"Расход номер {id} удален")
     return AUTH
 
 
 async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     category = update.message.text.replace("/catadd", "").strip()
     expense_manger.insert_category(category)
-    await update.message.reply_markdown_v2(f"Категория {category} добавлена")
+    await update.message.reply_text(f"Категория {category} добавлена")
     expense_manger._load_categories()
     return AUTH
 
@@ -125,7 +125,7 @@ async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     category = update.message.text.replace("/catdel", "").strip()
     expense_manger.delete_category(category)
-    await update.message.reply_markdown_v2(f"Категория {category} удалена")
+    await update.message.reply_text(f"Категория {category} удалена")
     expense_manger._load_categories()
     return AUTH
 
@@ -133,18 +133,18 @@ async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = re.match(r"(\d+)(.*)", update.message.text)
     if not text or not text.group(0) or not text.group(1):
-        await update.message.reply_markdown_v2("неправильный формат")
+        await update.message.reply_text("неправильный формат")
         return AUTH
     if not update.effective_user:
         return AUTH
     if not context.user_data:
-        await update.message.reply_markdown_v2("сначала выберете категорию")
+        await update.message.reply_text("сначала выберете категорию")
         return AUTH
     category = context.user_data["category"]
     id = expense_manger.save_expense(
         int(text.group(1)), category, text.group(2), update.effective_user.id
     )
-    await update.message.reply_markdown_v2(
+    await update.message.reply_text(
         "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
             text.group(1), expense_manger._categories[category], id
         )
@@ -163,7 +163,7 @@ async def manual_insert_expense(
     elif len(text) == 4:
         _, amount, category, comment = text
     else:
-        await update.message.reply_markdown_v2("неправильный формат")
+        await update.message.reply_text("неправильный формат")
         return AUTH
     categories_reversed = {v: k for k, v in expense_manger.get_categories().items()}
     if not update.effective_user:
@@ -174,7 +174,7 @@ async def manual_insert_expense(
         comment.strip(),
         update.effective_user.id,
     )
-    await update.message.reply_markdown_v2(
+    await update.message.reply_text(
         "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
             amount, category, id
         )
@@ -188,7 +188,7 @@ async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     id = int(query.data)
     await query.answer()
     context.user_data["category"] = id  # type: ignore
-    await query.message.reply_markdown_v2(
+    await query.message.reply_text(
         "Напишите сумму расхода и комментарий для категории *{0}*".format(
             expense_manger._categories[id]
         )
