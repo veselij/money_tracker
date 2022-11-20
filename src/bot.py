@@ -70,16 +70,15 @@ async def get_expenses_total(
 ) -> int:
     if not update.effective_user:
         return AUTH
-    if all:
-        expenses = expense_manger.get_expenses_total()
-        message, chart_data = prepare_expense_message(expenses)
-    else:
-        expenses = expense_manger.get_expenses_total(int(update.effective_user.id))
-        message, chart_data = prepare_expense_message(
-            expenses, int(update.effective_user.id)
-        )
+    user_id = int(update.effective_user.id) if not all else None
+    expenses = expense_manger.get_expenses_total(user_id)
+    message, chart_data = prepare_expense_message(expenses, user_id)
     chart = generate_chart(chart_data)
     await context.bot.send_photo(update.effective_user.id, chart, message)
+    await context.bot.send_sticker(
+        update.effective_user.id,
+        "CAACAgIAAxkBAAEaJb5jeoULCuz0w7MOCF8TF5Im-mnaPQACOBEAAntimEnFPaOTq4hs8SsE",
+    )
     return AUTH
 
 
@@ -91,12 +90,10 @@ async def get_last_expenses(
 ) -> int:
     if not update.effective_user:
         return AUTH
-    if all:
-        expenses = expense_manger.get_expenses_last()
-        message = prepare_expense_message_last(expenses)
-    else:
-        expenses = expense_manger.get_expenses_last(update.effective_user.id)
-        message = prepare_expense_message_last(expenses, update.effective_user.id)
+
+    user_id = int(update.effective_user.id) if not all else None
+    expenses = expense_manger.get_expenses_last(user_id)
+    message = prepare_expense_message_last(expenses, user_id)
     await context.bot.send_message(update.effective_user.id, message)
     return AUTH
 
@@ -139,13 +136,16 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     id = expense_manger.save_expense(
         int(text.group(1)), category, text.group(2), update.effective_user.id
     )
-    cat = categories[category][0]
+    cat = categories[category].pop()
     await update.message.reply_text(
         "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
             text.group(1), cat.name, id
         )
     )
     context.user_data.clear()
+    await update.message.reply_sticker(
+        "CAACAgIAAxkBAAEaJbBjeoPXKtSD-EnFecT_MJVBtFTvCQACcRgAAmAswEhDEnqaks1kICsE"
+    )
     return AUTH
 
 
@@ -161,21 +161,24 @@ async def manual_insert_expense(
     else:
         await update.message.reply_text("неправильный формат")
         return AUTH
-    categories_reversed = {cat.name: cat.id for cat in categories}
     if not update.effective_user:
         return AUTH
-    id = expense_manger.save_expense(
-        int(amount),
-        categories_reversed[category.strip()],
-        comment.strip(),
-        update.effective_user.id,
-    )
-    await update.message.reply_text(
-        "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
-            amount, category, id
+    try:
+        id = expense_manger.save_expense(
+            int(amount),
+            categories.get_category_id(category.strip()),
+            comment.strip(),
+            update.effective_user.id,
         )
-    )
-    context.user_data.clear()  # type: ignore
+        await update.message.reply_text(
+            "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
+                amount, category, id
+            )
+        )
+    except KeyError:
+        await update.message.reply_text(
+            "такой категории нет {0}".format(category.strip())
+        )
     return AUTH
 
 
@@ -184,7 +187,7 @@ async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     id = int(query.data)
     await query.answer()
     context.user_data["category"] = id  # type: ignore
-    category = categories[id][0]
+    category = categories[id].pop()
     await query.message.reply_text(
         "Напишите сумму расхода и комментарий для категории {0}".format(category.name)
     )
