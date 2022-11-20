@@ -18,6 +18,12 @@ class ExpenseReport:
     comment: str = ""
 
 
+@dataclass
+class Category:
+    id: int
+    name: str
+
+
 class DataBaseClient(ABC):
     @abstractmethod
     def insert(self, expense: Expense) -> int:
@@ -36,7 +42,7 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
-    def load_categories(self, categories: dict[int, str]) -> None:
+    def load_categories(self, categories: dict[int, Category]) -> None:
         ...
 
     @abstractmethod
@@ -62,10 +68,10 @@ class SqliteClient(DataBaseClient):
         self._cur = self._conn.cursor()
         self._create_database()
 
-    def load_categories(self, categories: dict[int, str]) -> None:
-        self._cur.execute("SELECT * from categories WHERE activerecord = 1")
+    def load_categories(self, categories: dict[int, Category]) -> None:
+        self._cur.execute("SELECT id, CATEGORY from categories WHERE activerecord = 1")
         for row in self._cur.fetchall():
-            categories[row[0]] = row[1]
+            categories[row[0]] = Category(*row)
 
     def insert(self, expense: Expense) -> int:
         self._cur.execute(

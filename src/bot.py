@@ -1,5 +1,6 @@
 import logging
 import re
+from functools import partial
 
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -13,6 +14,7 @@ from telegram.ext import (
     filters,
 )
 
+from categories import Categories
 from config import config
 from db import SqliteClient
 from expenses import ExpenseManager
@@ -27,6 +29,7 @@ AUTH = 0
 
 db_client = SqliteClient()
 expense_manger = ExpenseManager(db_client)
+categories = Categories(db_client)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -48,13 +51,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    categories = list(expense_manger._categories.items())
     step = 3
     keyboard = []
     for i in range(0, len(categories), step):
         sub_keys = []
-        for cat in categories[i : i + step]:
-            sub_keys.append(InlineKeyboardButton(cat[1], callback_data=str(cat[0])))
+        s = slice(i, i + step)
+        for cat in categories[s]:
+            sub_keys.append(InlineKeyboardButton(cat.name, callback_data=str(cat.id)))
         keyboard.append(sub_keys)
 
     replay_markup = InlineKeyboardMarkup(keyboard)
@@ -62,44 +65,43 @@ async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     return AUTH
 
 
-async def get_expenses_total(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.effective_user:
+async def get_expenses_total(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, all: bool = False
+) -> int:
+    if not update.effective_user:
+        return AUTH
+    if all:
+        expenses = expense_manger.get_expenses_total()
+        message, chart_data = prepare_expense_message(expenses)
+    else:
         expenses = expense_manger.get_expenses_total(int(update.effective_user.id))
         message, chart_data = prepare_expense_message(
             expenses, int(update.effective_user.id)
         )
-        chart = generate_chart(chart_data)
-        await context.bot.send_photo(update.effective_user.id, chart, message)
+    chart = generate_chart(chart_data)
+    await context.bot.send_photo(update.effective_user.id, chart, message)
     return AUTH
 
 
-async def get_expenses_total_all(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
+get_expenses_total_all = partial(get_expenses_total, all=True)
+
+
+async def get_last_expenses(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, all: bool = False
 ) -> int:
-    if update.effective_user:
-        expenses = expense_manger.get_expenses_total()
-        message, chart_data = prepare_expense_message(expenses)
-        chart = generate_chart(chart_data)
-        await context.bot.send_photo(update.effective_user.id, chart, message)
-    return AUTH
-
-
-async def get_last_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if update.effective_user:
+    if not update.effective_user:
+        return AUTH
+    if all:
+        expenses = expense_manger.get_expenses_last()
+        message = prepare_expense_message_last(expenses)
+    else:
         expenses = expense_manger.get_expenses_last(update.effective_user.id)
         message = prepare_expense_message_last(expenses, update.effective_user.id)
         await context.bot.send_message(update.effective_user.id, message)
     return AUTH
 
 
-async def get_last_expenses_all(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> int:
-    if update.effective_user:
-        expenses = expense_manger.get_expenses_last()
-        message = prepare_expense_message_last(expenses)
-        await context.bot.send_message(update.effective_user.id, message)
-    return AUTH
+get_last_expenses_all = partial(get_last_expenses, all=True)
 
 
 async def del_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -111,17 +113,15 @@ async def del_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
 async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     category = update.message.text.replace("/catadd", "").strip()
-    expense_manger.insert_category(category)
+    categories.append(category)
     await update.message.reply_text(f"Категория {category} добавлена")
-    expense_manger._load_categories()
     return AUTH
 
 
 async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     category = update.message.text.replace("/catdel", "").strip()
-    expense_manger.delete_category(category)
+    del categories[category]
     await update.message.reply_text(f"Категория {category} удалена")
-    expense_manger._load_categories()
     return AUTH
 
 
@@ -139,9 +139,10 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     id = expense_manger.save_expense(
         int(text.group(1)), category, text.group(2), update.effective_user.id
     )
+    cat = categories[category][0]
     await update.message.reply_text(
-        "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
-            text.group(1), expense_manger._categories[category], id
+        "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
+            text.group(1), cat.name, id
         )
     )
     context.user_data.clear()
@@ -160,7 +161,7 @@ async def manual_insert_expense(
     else:
         await update.message.reply_text("неправильный формат")
         return AUTH
-    categories_reversed = {v: k for k, v in expense_manger.get_categories().items()}
+    categories_reversed = {cat.name: cat.id for cat in categories}
     if not update.effective_user:
         return AUTH
     id = expense_manger.save_expense(
@@ -170,7 +171,7 @@ async def manual_insert_expense(
         update.effective_user.id,
     )
     await update.message.reply_text(
-        "расход *{0}* руб добавлен в категорию *{1}* удалить /del{2}".format(
+        "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
             amount, category, id
         )
     )
@@ -183,10 +184,9 @@ async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     id = int(query.data)
     await query.answer()
     context.user_data["category"] = id  # type: ignore
+    category = categories[id][0]
     await query.message.reply_text(
-        "Напишите сумму расхода и комментарий для категории *{0}*".format(
-            expense_manger._categories[id]
-        )
+        "Напишите сумму расхода и комментарий для категории {0}".format(category.name)
     )
     return AUTH
 
