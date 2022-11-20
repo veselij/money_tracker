@@ -97,7 +97,7 @@ async def get_last_expenses(
     else:
         expenses = expense_manger.get_expenses_last(update.effective_user.id)
         message = prepare_expense_message_last(expenses, update.effective_user.id)
-        await context.bot.send_message(update.effective_user.id, message)
+    await context.bot.send_message(update.effective_user.id, message)
     return AUTH
 
 
