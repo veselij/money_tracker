@@ -75,10 +75,6 @@ async def get_expenses_total(
     message, chart_data = prepare_expense_message(expenses, user_id)
     chart = generate_chart(chart_data)
     await context.bot.send_photo(update.effective_user.id, chart, message)
-    await context.bot.send_sticker(
-        update.effective_user.id,
-        "CAACAgIAAxkBAAEaJb5jeoULCuz0w7MOCF8TF5Im-mnaPQACOBEAAntimEnFPaOTq4hs8SsE",
-    )
     return AUTH
 
 
@@ -143,9 +139,6 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
     )
     context.user_data.clear()
-    await update.message.reply_sticker(
-        "CAACAgIAAxkBAAEaJbBjeoPXKtSD-EnFecT_MJVBtFTvCQACcRgAAmAswEhDEnqaks1kICsE"
-    )
     return AUTH
 
 
