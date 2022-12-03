@@ -1,6 +1,7 @@
 import logging
 import re
 from functools import partial
+from itertools import islice
 
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -55,8 +56,7 @@ async def add_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     keyboard = []
     for i in range(0, len(categories), step):
         sub_keys = []
-        s = slice(i, i + step)
-        for cat in categories[s]:
+        for cat in islice(categories, i, i + step):
             sub_keys.append(InlineKeyboardButton(cat.name, callback_data=str(cat.id)))
         keyboard.append(sub_keys)
 
@@ -132,7 +132,7 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     id = expense_manger.save_expense(
         int(text.group(1)), category, text.group(2), update.effective_user.id
     )
-    cat = categories[category].pop()
+    cat = categories[category]
     await update.message.reply_text(
         "расход {0} руб добавлен в категорию {1} удалить /del{2}".format(
             text.group(1), cat.name, id
@@ -180,7 +180,7 @@ async def category_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     id = int(query.data)
     await query.answer()
     context.user_data["category"] = id  # type: ignore
-    category = categories[id].pop()
+    category = categories[id]
     await query.message.reply_text(
         "Напишите сумму расхода и комментарий для категории {0}".format(category.name)
     )

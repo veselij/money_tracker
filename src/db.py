@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
 
-@dataclass
+@dataclass(frozen=True)
 class Expense:
     amount: int
     category_id: int
@@ -11,14 +11,14 @@ class Expense:
     comment: str = ""
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpenseReport:
     amount: int
     category: str
     comment: str = ""
 
 
-@dataclass
+@dataclass(frozen=True)
 class Category:
     id: int
     name: str
@@ -75,7 +75,8 @@ class SqliteClient(DataBaseClient):
 
     def insert(self, expense: Expense) -> int:
         self._cur.execute(
-            f"INSERT INTO expenses(AMOUNT, COMMENT, CATEGORY_ID, USER_ID) VALUES ({expense.amount}, '{expense.comment.strip()}', {expense.category_id}, {expense.user_id})"
+            f"INSERT INTO expenses(AMOUNT, COMMENT, CATEGORY_ID, USER_ID) \
+              VALUES ({expense.amount}, '{expense.comment.strip()}', {expense.category_id}, {expense.user_id})"
         )
         self._conn.commit()
         return self._cur.lastrowid or -1
@@ -85,11 +86,17 @@ class SqliteClient(DataBaseClient):
     ) -> list[ExpenseReport]:
         if user_id:
             self._cur.execute(
-                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' GROUP BY CATEGORY"
+                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE USER_ID = {user_id} and created_at >= '{start}' \
+                  GROUP BY CATEGORY"
             )
         else:
             self._cur.execute(
-                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' GROUP BY CATEGORY"
+                f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE created_at >= '{start}' \
+                  GROUP BY CATEGORY"
             )
         expenses = []
         for row in self._cur.fetchall():
@@ -101,11 +108,17 @@ class SqliteClient(DataBaseClient):
     ) -> dict[int, ExpenseReport]:
         if user_id:
             self._cur.execute(
-                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE USER_ID = {user_id} and created_at >= '{start}' order by created_at"
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE USER_ID = {user_id} and created_at >= '{start}' \
+                  ORDER BY created_at"
             )
         else:
             self._cur.execute(
-                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e LEFT JOIN categories c on e.CATEGORY_ID = c.id WHERE created_at >= '{start}' order by created_at"
+                f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE created_at >= '{start}' \
+                  ORDER BY created_at"
             )
         expenses = {}
         for row in self._cur.fetchall():

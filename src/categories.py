@@ -21,11 +21,8 @@ class Categories:
         self._db.delete_category(category)
         self._load_categories()
 
-    def __getitem__(self, value: slice | int) -> list[Category]:
-        if isinstance(value, slice):
-            return list(self._categories.values())[value]
-        else:
-            return [self._categories[value]]
+    def __getitem__(self, value: int) -> Category:
+        return self._categories[value]
 
     def __iter__(self):
         for cat in self._categories.values():
