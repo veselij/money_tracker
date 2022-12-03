@@ -17,7 +17,7 @@ class Categories:
         self._db.insert_category(category)
         self._load_categories()
 
-    def __delitem__(self, category: str) -> None:
+    def __delitem__(self, category: int) -> None:
         self._db.delete_category(category)
         self._load_categories()
 

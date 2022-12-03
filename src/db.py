@@ -54,7 +54,7 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
-    def delete_category(self, category: str) -> None:
+    def delete_category(self, category: int) -> None:
         ...
 
     @abstractmethod
@@ -135,9 +135,9 @@ class SqliteClient(DataBaseClient):
         )
         self._conn.commit()
 
-    def delete_category(self, category: str) -> None:
+    def delete_category(self, category: int) -> None:
         self._cur.execute(
-            f"UPDATE categories SET activerecord = 0 WHERE CATEGORY = '{category}'"
+            f"UPDATE categories SET activerecord = 0 WHERE id = {category}"
         )
         self._conn.commit()
 
