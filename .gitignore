@@ -3,4 +3,5 @@ DS_Store
 expenses.db
 src/__pycache__
 src/menu/__pycache__/
+persistance_states
 
