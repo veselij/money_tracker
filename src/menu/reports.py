@@ -66,12 +66,6 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     func = func_map[context.user_data["func"]]
     group = context.user_data["group"]
-    message, picture = func(int(update.effective_user.id), group, query.data)
-    if isinstance(picture, bytes):
-        await query.delete_message()
-        msg = await context.bot.send_photo(update.effective_user.id, picture, message)
-        context.user_data["msg"] = int(msg.id)
-    else:
-        msg = await query.edit_message_text(message)
-        context.user_data["msg"] = int(msg.id)
+    msg = await func(query, int(update.effective_user.id), group, query.data)
+    context.user_data["msg"] = int(msg.id)
     return AUTH

@@ -6,7 +6,7 @@ from categories import categories
 from expense_manager import expense_manger
 from menu.states import AUTH, DELETE_EXPENSE, MANAGE_EXPENSE, MOVE_EXPENSE
 from menu.utils import delete_old_message, make_category_inline_menu
-from report_manager import get_expenses_list
+from report_manager import get_expenses_list_with_ids
 
 
 async def manage_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -28,7 +28,7 @@ async def move_expense_request_categories(
 ) -> int:
     query = update.callback_query
     await query.answer()
-    expenses, id_map = get_expenses_list(
+    expenses, id_map = get_expenses_list_with_ids(
         update.effective_user.id, False, cb.report_by_date
     )
     context.user_data["id_map"] = id_map
@@ -69,7 +69,7 @@ async def delete_expense_request(
 ) -> int:
     query = update.callback_query
     await query.answer()
-    expenses, id_map = get_expenses_list(
+    expenses, id_map = get_expenses_list_with_ids(
         update.effective_user.id, False, cb.report_by_date
     )
     context.user_data["id_map"] = id_map

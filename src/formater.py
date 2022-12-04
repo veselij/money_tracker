@@ -33,17 +33,15 @@ def prepare_expense_message(
 
 def prepare_expense_message_last(
     expenses: dict[int, ExpenseReport], group: bool = False
-) -> tuple[str, dict[int, int]]:
+) -> str:
     message = get_init_message(group)
-    id_mapping = {}
-    for i, (id, expense) in enumerate(expenses.items(), 1):
-        id_mapping[i] = id
+    for i, (_, expense) in enumerate(expenses.items(), 1):
         if expense.comment:
-            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р. ({expense.comment})\n"
+            message += f"{i:03}. {expense.category}: {expense.amount/1000:0.1f} т.р. ({expense.comment})\n"
         else:
-            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р.\n"
+            message += f"{i:03}. {expense.category}: {expense.amount/1000:0.1f} т.р.\n"
 
-    return message, id_mapping
+    return message
 
 
 def generate_chart(data: dict[str, int]) -> bytes:
