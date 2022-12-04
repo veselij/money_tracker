@@ -35,7 +35,8 @@ async def select_report_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
         [InlineKeyboardButton("Общие", callback_data=cb.report_all)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text("Выберете чьи расходы", reply_markup=mark_up)
+    msg = await query.edit_message_text("Выберете чьи расходы", reply_markup=mark_up)
+    context.user_data["msg"] = int(msg.id)
     return REPORTS
 
 
@@ -54,7 +55,8 @@ async def select_ordering(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         [InlineKeyboardButton("По расходу", callback_data=cb.report_by_amount)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    await query.edit_message_text("Выберете сортировку", reply_markup=mark_up)
+    msg = await query.edit_message_text("Выберете сортировку", reply_markup=mark_up)
+    context.user_data["msg"] = int(msg.id)
     return REPORTS
 
 
@@ -67,7 +69,9 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     message, picture = func(int(update.effective_user.id), group, query.data)
     if isinstance(picture, bytes):
         await query.delete_message()
-        await context.bot.send_photo(update.effective_user.id, picture, message)
+        msg = await context.bot.send_photo(update.effective_user.id, picture, message)
+        context.user_data["msg"] = int(msg.id)
     else:
-        await query.edit_message_text(message)
+        msg = await query.edit_message_text(message)
+        context.user_data["msg"] = int(msg.id)
     return AUTH
