@@ -1,6 +1,6 @@
 import logging
 
-from db import Category, DataBaseClient
+from db import Category, DataBaseClient, db_client
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,3 +40,6 @@ class Categories:
 
     def __len__(self) -> int:
         return len(self._categories)
+
+
+categories = Categories(db_client)

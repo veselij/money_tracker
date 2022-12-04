@@ -31,13 +31,13 @@ class DataBaseClient(ABC):
 
     @abstractmethod
     def get_expenses_total(
-        self, start: str, user_id: int | None
+        self, start: str, user_id: int, group: bool, ordering: str
     ) -> list[ExpenseReport]:
         ...
 
     @abstractmethod
     def get_expenses_last(
-        self, user_id: int | None, start: str
+        self, user_id: int, group: bool, start: str, ordering: str
     ) -> dict[int, ExpenseReport]:
         ...
 
@@ -47,6 +47,10 @@ class DataBaseClient(ABC):
 
     @abstractmethod
     def del_row(self, id: int) -> None:
+        ...
+
+    @abstractmethod
+    def move_row(self, id: int, new_category: int) -> None:
         ...
 
     @abstractmethod
@@ -82,21 +86,23 @@ class SqliteClient(DataBaseClient):
         return self._cur.lastrowid or -1
 
     def get_expenses_total(
-        self, start: str, user_id: int | None
+        self, start: str, user_id: int, group: bool, ordering: str
     ) -> list[ExpenseReport]:
-        if user_id:
+        if not group:
             self._cur.execute(
                 f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE USER_ID = {user_id} and created_at >= '{start}' \
-                  GROUP BY CATEGORY"
+                  GROUP BY CATEGORY \
+                  ORDER BY {ordering}"
             )
         else:
             self._cur.execute(
                 f"SELECT sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE created_at >= '{start}' \
-                  GROUP BY CATEGORY"
+                  GROUP BY CATEGORY \
+                  ORDER BY {ordering}"
             )
         expenses = []
         for row in self._cur.fetchall():
@@ -104,21 +110,21 @@ class SqliteClient(DataBaseClient):
         return expenses
 
     def get_expenses_last(
-        self, user_id: int | None, start: str
+        self, user_id: int, group: bool, start: str, ordering: str
     ) -> dict[int, ExpenseReport]:
-        if user_id:
+        if not group:
             self._cur.execute(
                 f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE USER_ID = {user_id} and created_at >= '{start}' \
-                  ORDER BY created_at"
+                  ORDER BY {ordering}"
             )
         else:
             self._cur.execute(
                 f"SELECT e.ID, AMOUNT, CATEGORY, COMMENT FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE created_at >= '{start}' \
-                  ORDER BY created_at"
+                  ORDER BY {ordering}"
             )
         expenses = {}
         for row in self._cur.fetchall():
@@ -127,6 +133,12 @@ class SqliteClient(DataBaseClient):
 
     def del_row(self, id: int) -> None:
         self._cur.execute(f"DELETE FROM expenses WHERE ID = {id}")
+        self._conn.commit()
+
+    def move_row(self, id: int, new_category: int) -> None:
+        self._cur.execute(
+            f"UPDATE expenses SET CATEGORY_ID = {new_category} WHERE id = {id}"
+        )
         self._conn.commit()
 
     def insert_category(self, category: str) -> None:
@@ -146,3 +158,6 @@ class SqliteClient(DataBaseClient):
             sql = fl.read()
         self._cur.executescript(sql)
         self._conn.commit()
+
+
+db_client = SqliteClient()

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from config import MONTH_START_DAY
-from db import DataBaseClient, Expense, ExpenseReport
+from db import DataBaseClient, Expense, ExpenseReport, db_client
 
 
 def calculate_date() -> str:
@@ -26,13 +26,27 @@ class ExpenseManager:
         id = self._db.insert(expense)
         return id
 
-    def get_expenses_total(self, user_id: int | None = None) -> list[ExpenseReport]:
-        expenses = self._db.get_expenses_total(calculate_date(), user_id)
+    def get_expenses_total(
+        self, user_id: int, group: bool, ordering: str
+    ) -> list[ExpenseReport]:
+        expenses = self._db.get_expenses_total(
+            calculate_date(), user_id, group, ordering
+        )
         return expenses
 
-    def get_expenses_last(self, user_id: int | None = None) -> dict[int, ExpenseReport]:
-        expenses = self._db.get_expenses_last(user_id, calculate_date())
+    def get_expenses_last(
+        self, user_id: int, group: bool, ordering: str
+    ) -> dict[int, ExpenseReport]:
+        expenses = self._db.get_expenses_last(
+            user_id, group, calculate_date(), ordering
+        )
         return expenses
 
     def del_expense(self, id: int) -> None:
         self._db.del_row(id)
+
+    def move_expense(self, id: int, new_category: int) -> None:
+        self._db.move_row(id, new_category)
+
+
+expense_manger = ExpenseManager(db_client)

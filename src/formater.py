@@ -8,9 +8,9 @@ from config import MONTH_START_DAY
 from db import ExpenseReport
 
 
-def get_init_message(user_id: int | None) -> str:
+def get_init_message(group: bool) -> str:
     today = datetime.today().strftime("%d-%m-%Y")
-    if user_id:
+    if not group:
         message = f"Тобой потрачено с {MONTH_START_DAY} числа месяца по {today}:\n\n"
     else:
         message = f"Вместе потрачено с {MONTH_START_DAY} числа месяца по {today}:\n\n"
@@ -18,9 +18,9 @@ def get_init_message(user_id: int | None) -> str:
 
 
 def prepare_expense_message(
-    expenses: list[ExpenseReport], user_id: int | None = None
+    expenses: list[ExpenseReport], group: bool = False
 ) -> tuple[str, dict[str, int]]:
-    message = get_init_message(user_id)
+    message = get_init_message(group)
     total = 0
     chart_data: dict[str, int] = defaultdict(int)
     for expense in expenses:
@@ -32,16 +32,18 @@ def prepare_expense_message(
 
 
 def prepare_expense_message_last(
-    expenses: dict[int, ExpenseReport], user_id: int | None = None
-) -> str:
-    message = get_init_message(user_id)
+    expenses: dict[int, ExpenseReport], group: bool = False
+) -> tuple[str, dict[int, int]]:
+    message = get_init_message(group)
+    id_mapping = {}
     for i, (id, expense) in enumerate(expenses.items(), 1):
+        id_mapping[i] = id
         if expense.comment:
-            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р. ({expense.comment}) /del{id}\n"
+            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р. ({expense.comment})\n"
         else:
-            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р. /del{id}\n"
+            message += f"{i:02}. {expense.category}: {expense.amount/1000:0.1f} т.р.\n"
 
-    return message
+    return message, id_mapping
 
 
 def generate_chart(data: dict[str, int]) -> bytes:
