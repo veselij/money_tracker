@@ -124,7 +124,7 @@ class SqliteClient(DataBaseClient):
                 f"SELECT strftime('%Y-%m-%d',created_at), sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE USER_ID = {user_id} and created_at >= '{start}' \
-                  GROUP BY CATEGORY \
+                  GROUP BY strftime('%Y-%m-%d',created_at), CATEGORY \
                   ORDER BY {ordering}"
             )
         else:
@@ -132,7 +132,7 @@ class SqliteClient(DataBaseClient):
                 f"SELECT strftime('%Y-%m-%d',created_at), sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
                   LEFT JOIN categories c on e.CATEGORY_ID = c.id \
                   WHERE created_at >= '{start}' \
-                  GROUP BY CATEGORY \
+                  GROUP BY strftime('%Y-%m-%d',created_at), CATEGORY \
                   ORDER BY {ordering}"
             )
         expenses: dict[str, list[ExpenseReport]] = defaultdict(list)

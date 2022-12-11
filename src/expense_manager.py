@@ -73,7 +73,7 @@ class ExpenseManager:
                 categories.add(expense.category)
             if day >= MONTH_START_DAY and month > curr_month:
                 accomulted_expenses.append(month_expenses)
-                months.append(str(month))
+                months.append(str(month - 1))
                 month_expenses = defaultdict(int)
                 curr_month = month
 
