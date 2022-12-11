@@ -25,6 +25,7 @@ async def get_expenses_total(
 async def get_expenses_list(
     query: CallbackQuery, user_id: int, group: bool, ordering: str
 ) -> Message:
+    await query.delete_message()
     expenses = expense_manger.get_expenses_last(user_id, group, ordering)
     message = prepare_expense_message_last(expenses, group)
     msg = await query.edit_message_text(message)
@@ -34,6 +35,7 @@ async def get_expenses_list(
 async def get_expenses_trend(
     query: CallbackQuery, user_id: int, group: bool, ordering: str
 ) -> Message:
+    await query.delete_message()
     expenses = expense_manger.get_expenses_month_trend(user_id, group, ordering)
     message = prepare_expense_message_month_trend(expenses, group)
     chart = generate_trend_chart(expenses)

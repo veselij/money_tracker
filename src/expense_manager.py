@@ -68,14 +68,14 @@ class ExpenseManager:
         month_expenses: dict[str, int] = defaultdict(int)
         for date, values in expenses.items():
             _, month, day = [int(d) for d in date.split("-")]
-            if day >= MONTH_START_DAY and month > curr_month and month_expenses:
+            for expense in values:
+                month_expenses[expense.category] += expense.amount
+                categories.add(expense.category)
+            if day >= MONTH_START_DAY and month > curr_month:
                 accomulted_expenses.append(month_expenses)
                 months.append(str(month))
                 month_expenses = defaultdict(int)
                 curr_month = month
-            for expense in values:
-                month_expenses[expense.category] += expense.amount
-                categories.add(expense.category)
 
         accomulted_expenses.append(month_expenses)
         months.append("current")
