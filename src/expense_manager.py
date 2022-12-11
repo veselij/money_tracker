@@ -32,7 +32,6 @@ class TrendData:
                 cat_month_expense.append(exp.get(cat, 0))
             chart_data.append(cat_month_expense)
             labels.append(cat)
-        print(labels, chart_data)
         return labels, chart_data
 
 
