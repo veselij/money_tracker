@@ -28,7 +28,7 @@ async def get_expenses_list(
     await query.delete_message()
     expenses = expense_manger.get_expenses_last(user_id, group, ordering)
     message = prepare_expense_message_last(expenses, group)
-    msg = await query.edit_message_text(message)
+    msg = await query.get_bot().send_message(user_id, message)
     return msg
 
 
