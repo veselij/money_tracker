@@ -64,11 +64,21 @@ def generate_trend_chart(trend_expenses: TrendData) -> bytes:
     fig, ax = plt.subplots()
     fig.set_facecolor("lightgrey")
     bottom = [0] * len(series[0])
-    ax.bar(trend_expenses.months, series[0], label=labels[0])
+    bar_width = 0.4
+    ax.bar(trend_expenses.months, series[0], bar_width, label=labels[0])
     for i, (label, data) in enumerate(zip(labels[1:], series[1:])):
         bottom = [sum(value) for value in zip(bottom, series[i])]
-        ax.bar(trend_expenses.months, data, label=label, bottom=bottom)
-    ax.legend()
+        ax.bar(trend_expenses.months, data, bar_width, label=label, bottom=bottom)
+    table = plt.table(
+        cellText=series,
+        rowLabels=labels,
+        colLabels=trend_expenses.months,
+        loc="bottom",
+    )
+    table.set_fontsize(7)
+    # ax.legend()
+    plt.subplots_adjust(left=0.2, bottom=0.4)
+    plt.xticks([])
 
     file = _generate_file_chart()
     plt.close()
