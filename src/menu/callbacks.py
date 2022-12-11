@@ -3,6 +3,7 @@ add_category = "add_category"
 
 report_list = "report_list"
 report_total = "report_total"
+report_trend = "report_trend"
 report_my = "report_my"
 report_all = "report_all"
 

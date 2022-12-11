@@ -1,5 +1,6 @@
 import sqlite3
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from dataclasses import dataclass
 
 
@@ -39,6 +40,12 @@ class DataBaseClient(ABC):
     def get_expenses_last(
         self, user_id: int, group: bool, start: str, ordering: str
     ) -> dict[int, ExpenseReport]:
+        ...
+
+    @abstractmethod
+    def get_expenses_month_trend(
+        self, user_id: int, group: bool, start: str, ordering: str
+    ) -> dict[str, list[ExpenseReport]]:
         ...
 
     @abstractmethod
@@ -107,6 +114,30 @@ class SqliteClient(DataBaseClient):
         expenses = []
         for row in self._cur.fetchall():
             expenses.append(ExpenseReport(*row))
+        return expenses
+
+    def get_expenses_month_trend(
+        self, user_id: int, group: bool, start: str, ordering: str
+    ) -> dict[str, list[ExpenseReport]]:
+        if not group:
+            self._cur.execute(
+                f"SELECT strftime('%Y-%m-%d',created_at), sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE USER_ID = {user_id} and created_at >= '{start}' \
+                  GROUP BY CATEGORY \
+                  ORDER BY {ordering}"
+            )
+        else:
+            self._cur.execute(
+                f"SELECT strftime('%Y-%m-%d',created_at), sum(AMOUNT) as AMOUNT, CATEGORY FROM expenses e \
+                  LEFT JOIN categories c on e.CATEGORY_ID = c.id \
+                  WHERE created_at >= '{start}' \
+                  GROUP BY CATEGORY \
+                  ORDER BY {ordering}"
+            )
+        expenses: dict[str, list[ExpenseReport]] = defaultdict(list)
+        for row in self._cur.fetchall():
+            expenses[row[0]].append(ExpenseReport(*row[1:]))
         return expenses
 
     def get_expenses_last(

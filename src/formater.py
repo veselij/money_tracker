@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 
 from config import MONTH_START_DAY
 from db import ExpenseReport
+from expense_manager import TrendData
 
 
 def get_init_message(group: bool) -> str:
@@ -44,14 +45,46 @@ def prepare_expense_message_last(
     return message
 
 
+def prepare_expense_message_month_trend(
+    trend_expenses: TrendData, group: bool = False
+) -> str:
+    message = get_init_message(group)
+
+    for month, expenses in zip(
+        trend_expenses.months, trend_expenses.accomulted_expenses
+    ):
+        amount = sum(expenses.values())
+        message += f"{month}: {amount} руб\n"
+
+    return message
+
+
+def generate_trend_chart(trend_expenses: TrendData) -> bytes:
+    labels, series = trend_expenses.get_chart_data()
+    fig, ax = plt.subplots()
+    fig.set_facecolor("lightgrey")
+    for label, data in zip(labels, series):
+        ax.bar(trend_expenses.months, data, label=label)
+    ax.legend()
+
+    file = _generate_file_chart()
+    plt.close()
+    return file
+
+
 def generate_chart(data: dict[str, int]) -> bytes:
     fig, ax = plt.subplots()
+    fig.set_facecolor("lightgrey")
     ax.pie(list(data.values()), labels=list(data.keys()))
     ax.axis("equal")
+    file = _generate_file_chart()
+    plt.close()
+    return file
+
+
+def _generate_file_chart() -> bytes:
     b = io.BytesIO()
-    fig.set_facecolor("lightgrey")
     plt.savefig(b, format="png")
     b.seek(0)
-    plt.close()
     file = b.read()
     return file

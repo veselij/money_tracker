@@ -4,8 +4,10 @@ import menu.callbacks as cb
 from expense_manager import expense_manger
 from formater import (
     generate_chart,
+    generate_trend_chart,
     prepare_expense_message,
     prepare_expense_message_last,
+    prepare_expense_message_month_trend,
 )
 
 
@@ -29,7 +31,21 @@ async def get_expenses_list(
     return msg
 
 
-func_map = {cb.report_list: get_expenses_list, cb.report_total: get_expenses_total}
+async def get_expenses_trend(
+    query: CallbackQuery, user_id: int, group: bool, ordering: str
+) -> Message:
+    expenses = expense_manger.get_expenses_month_trend(user_id, group, ordering)
+    message = prepare_expense_message_month_trend(expenses, group)
+    chart = generate_trend_chart(expenses)
+    msg = await query.get_bot().send_photo(user_id, chart, message)
+    return msg
+
+
+func_map = {
+    cb.report_list: get_expenses_list,
+    cb.report_total: get_expenses_total,
+    cb.report_trend: get_expenses_trend,
+}
 
 
 def get_expenses_list_with_ids(

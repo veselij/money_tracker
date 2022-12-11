@@ -32,3 +32,4 @@ async def delete_old_message(
             await context.bot.delete_message(update.effective_user.id, old_msg_id)
         except BadRequest as e:
             logger.exception(e)
+            pass

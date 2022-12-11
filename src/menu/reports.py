@@ -16,6 +16,7 @@ async def report_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
     keyboard = [
         [InlineKeyboardButton("Список", callback_data=cb.report_list)],
         [InlineKeyboardButton("Тотал", callback_data=cb.report_total)],
+        [InlineKeyboardButton("Тренд", callback_data=cb.report_trend)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
     msg = await update.message.reply_text(
@@ -46,7 +47,7 @@ async def select_ordering(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     group = True if query.data == cb.report_all else False
     context.user_data["group"] = group
 
-    if context.user_data["func"] == cb.report_total:
+    if context.user_data["func"] in [cb.report_total, cb.report_trend]:
         update.callback_query.data = "1"
         return await send_report(update, context)
 

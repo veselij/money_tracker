@@ -89,6 +89,7 @@ def create_conversation_states() -> dict:
         REPORTS: [
             CallbackQueryHandler(select_report_type, pattern=cb.report_list),
             CallbackQueryHandler(select_report_type, pattern=cb.report_total),
+            CallbackQueryHandler(select_report_type, pattern=cb.report_trend),
             CallbackQueryHandler(select_ordering, pattern=cb.report_my),
             CallbackQueryHandler(select_ordering, pattern=cb.report_all),
             CallbackQueryHandler(send_report, pattern=cb.report_by_date),
