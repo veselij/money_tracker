@@ -3,10 +3,13 @@ from telegram.ext import ContextTypes
 
 import menu.callbacks as cb
 from categories import categories
+from config import create_logger, log
 from expense_manager import expense_manger
 from menu.states import AUTH, DELETE_EXPENSE, MANAGE_EXPENSE, MOVE_EXPENSE
 from menu.utils import delete_old_message, make_category_inline_menu
 from report_manager import get_expenses_list_with_ids
+
+logger = create_logger(__name__)
 
 
 async def manage_expenses(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -53,13 +56,16 @@ async def select_new_category(
     return MOVE_EXPENSE
 
 
+@log(logger)
 async def move_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    id_map = context.user_data["id_map"]
-    new_category = context.user_data["new_category"]
+    id_map = context.user_data.pop("id_map")
+    new_category = context.user_data.pop("new_category")
     ids = update.message.text.split(",")
     for id in ids:
         expense_manger.move_expense(id_map.get(int(id)), new_category)
-    await context.bot.delete_message(update.effective_user.id, context.user_data["msg"])
+    await context.bot.delete_message(
+        update.effective_user.id, context.user_data.pop("msg")
+    )
     await update.message.reply_text("готово")
     return AUTH
 
@@ -80,11 +86,14 @@ async def delete_expense_request(
     return DELETE_EXPENSE
 
 
+@log(logger)
 async def delete_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    id_map = context.user_data["id_map"]
+    id_map = context.user_data.pop("id_map")
     ids = update.message.text.split(",")
     for id in ids:
         expense_manger.del_expense(id_map.get(int(id)))
-    await context.bot.delete_message(update.effective_user.id, context.user_data["msg"])
+    await context.bot.delete_message(
+        update.effective_user.id, context.user_data.pop("msg")
+    )
     await update.message.reply_text("готово")
     return AUTH

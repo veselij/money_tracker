@@ -1,4 +1,3 @@
-import logging
 import re
 
 from telegram import BotCommand, Update
@@ -14,7 +13,7 @@ from telegram.ext import (
 )
 
 import menu.callbacks as cb
-from config import config
+from config import config, create_logger
 from menu.cats import (
     add_category,
     chouse_category_name_to_delete,
@@ -39,9 +38,8 @@ from menu.manage_expense import (
 from menu.reports import report_menu, select_ordering, select_report_type, send_report
 from menu.states import AUTH, CAT, DELETE_EXPENSE, MANAGE_EXPENSE, MOVE_EXPENSE, REPORTS
 
-logger = logging.getLogger(__name__)
-
 nums = re.compile(r"\d+")
+logger = create_logger(__name__)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:

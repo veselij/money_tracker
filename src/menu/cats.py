@@ -1,14 +1,13 @@
-import logging
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
 from categories import categories
+from config import create_logger, log
 from menu import callbacks as cb
 from menu.states import AUTH, CAT
 from menu.utils import delete_old_message, make_category_inline_menu
 
-logger = logging.getLogger(__name__)
+logger = create_logger(__name__)
 
 
 async def send_menu_manage_categories(
@@ -34,6 +33,7 @@ async def request_category_name_to_add(
     return CAT
 
 
+@log(logger)
 async def add_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     category = update.message.text
     categories.append(category)
@@ -52,6 +52,7 @@ async def chouse_category_name_to_delete(
     return CAT
 
 
+@log(logger)
 async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
