@@ -76,7 +76,6 @@ def generate_trend_chart(trend_expenses: TrendData) -> bytes:
         loc="bottom",
     )
     table.set_fontsize(7)
-    # ax.legend()
     plt.subplots_adjust(left=0.2, bottom=0.4)
     plt.xticks([])
 

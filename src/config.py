@@ -2,11 +2,7 @@ import logging
 import os
 import pathlib
 from dataclasses import dataclass
-from functools import wraps
 from logging.handlers import TimedRotatingFileHandler
-
-from telegram import Update
-from telegram.ext import ContextTypes
 
 MONTH_START_DAY = 10
 
@@ -47,24 +43,3 @@ def create_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     logger.addHandler(flh)
     logger.setLevel(level)
     return logger
-
-
-def log(logger: logging.Logger):
-    def inner(func):
-        @wraps(func)
-        async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            text = update.message.text if update.message else ""
-            data = update.callback_query.data if update.callback_query else ""
-            userdata = ";".join([f"{k}:{v}" for k, v in context.user_data.items()])
-            text = f"text = {text} and callback data = {data}"
-            logger.info(
-                "calling function %s with args %s and user_data %s",
-                func.__name__,
-                text,
-                userdata,
-            )
-            return await func(update, context)
-
-        return wrapper
-
-    return inner

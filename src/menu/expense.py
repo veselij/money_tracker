@@ -1,27 +1,30 @@
 import re
 
-from telegram import Update
+from telegram import Message, Update
 from telegram.ext import ContextTypes
 
 from categories import categories
-from config import create_logger, log
+from config import create_logger
+from decorators import delete_old_message, log
 from expense_manager import expense_manger
 from menu.states import AUTH
-from menu.utils import delete_old_message, make_category_inline_menu
+from menu.utils import make_category_inline_menu
 
 logger = create_logger(__name__)
 
 
+@delete_old_message(logger)
 async def send_categories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    await delete_old_message(update, context)
     replay_markup = make_category_inline_menu(categories)
     msg = await update.message.reply_text(
         "Выберет категорию", reply_markup=replay_markup
     )
-    context.user_data["msg"] = int(msg.id)
+    if isinstance(msg, Message) and context.user_data:
+        context.user_data["msg"] = int(msg.id)
     return AUTH
 
 
+@delete_old_message(logger)
 async def request_expense_anount_for_category(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
@@ -29,18 +32,18 @@ async def request_expense_anount_for_category(
     id = int(query.data)
     await query.answer()
 
-    await delete_old_message(update, context)
-
     context.user_data["category"] = id  # type: ignore
     category = categories[id]
     msg = await query.message.reply_text(
         "Напишите сумму расхода и комментарий для категории {0}".format(category.name)
     )
-    context.user_data["msg"] = int(msg.id)
+    if isinstance(msg, Message) and context.user_data:
+        context.user_data["msg"] = int(msg.id)
     return AUTH
 
 
 @log(logger)
+@delete_old_message(logger)
 async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = re.match(r"(\d+)(.*)", update.message.text)
     if not text or not text.group(0) or not text.group(1):
@@ -56,7 +59,6 @@ async def insert_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         int(text.group(1)), category, text.group(2), update.effective_user.id
     )
     cat = categories[category]
-    await delete_old_message(update, context)
     msg = await update.message.reply_text(
         "расход {0} руб добавлен в категорию {1}".format(text.group(1), cat.name)
     )

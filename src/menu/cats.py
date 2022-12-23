@@ -1,26 +1,28 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Message, Update
 from telegram.ext import ContextTypes
 
 from categories import categories
-from config import create_logger, log
+from config import create_logger
+from decorators import delete_old_message, log
 from menu import callbacks as cb
 from menu.states import AUTH, CAT
-from menu.utils import delete_old_message, make_category_inline_menu
+from menu.utils import make_category_inline_menu
 
 logger = create_logger(__name__)
 
 
+@delete_old_message(logger)
 async def send_menu_manage_categories(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    await delete_old_message(update, context)
     keyboard = [
         [InlineKeyboardButton("Добавить", callback_data=cb.add_category)],
         [InlineKeyboardButton("Удалить", callback_data=cb.delete_category)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
     msg = await update.message.reply_text("Категории:", reply_markup=mark_up)
-    context.user_data["msg"] = int(msg.id)
+    if isinstance(msg, Message) and context.user_data:
+        context.user_data["msg"] = int(msg.id)
     return CAT
 
 

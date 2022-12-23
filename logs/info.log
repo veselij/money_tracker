@@ -1,7 +1,22 @@
-2022-12-15 22:59:28,435 menu.cats    INFO     calling function delete_category with args text =  and callback data = 13
-2022-12-15 23:00:05,299 menu.cats    INFO     calling function add_category with args text = Ырррв and callback data = 
-2022-12-15 23:00:12,466 menu.expense INFO     calling function insert_expense with args text = 1 and callback data = 
-2022-12-15 23:00:25,165 menu.manage_expense INFO     calling function delete_expense with args text = 11 and callback data = 
-2022-12-15 23:04:39,834 menu.expense INFO     calling function insert_expense with args text = 62636 and callback data =  and user_data msg:3082;id_map:{1: 135, 2: 146, 3: 154, 4: 155, 5: 156, 6: 157, 7: 159, 8: 163, 9: 165, 10: 166, 11: 167};category:12
-2022-12-15 23:08:04,421 menu.manage_expense INFO     calling function move_expense with args text = 11 and callback data =  and user_data msg:3086;id_map:{1: 135, 2: 146, 3: 154, 4: 155, 5: 156, 6: 157, 7: 159, 8: 163, 9: 165, 10: 166, 11: 167};new_category:8
-2022-12-15 23:08:13,325 menu.expense INFO     calling function insert_expense with args text = 34 and callback data =  and user_data msg:3091;new_category:8;category:8
+2022-12-24 00:31:25,009 menu.expense ERROR    Message can't be deleted for everyone
+Traceback (most recent call last):
+  File "/Users/ealmina/Documents/money_tracker/src/decorators.py", line 21, in wrapper
+    await context.bot.delete_message(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/ext/_extbot.py", line 1077, in delete_message
+    return await super().delete_message(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/_bot.py", line 242, in decorator
+    result = await func(*args, **kwargs)
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/_bot.py", line 736, in delete_message
+    result = await self._post(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/_bot.py", line 303, in _post
+    return await self._do_post(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/ext/_extbot.py", line 281, in _do_post
+    return await super()._do_post(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/_bot.py", line 334, in _do_post
+    return await request.post(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/request/_baserequest.py", line 162, in post
+    result = await self._request_wrapper(
+  File "/Users/ealmina/Documents/money_tracker/venv/lib/python3.10/site-packages/telegram/request/_baserequest.py", line 325, in _request_wrapper
+    raise BadRequest(message)
+telegram.error.BadRequest: Message can't be deleted for everyone
+2022-12-24 00:31:30,266 menu.expense INFO     calling function insert_expense with args text = 1 and callback data =  and user_data msg:3323;category:2
