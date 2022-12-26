@@ -2,10 +2,13 @@ from itertools import islice
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from categories import Categories
+from backend.db import Group
+from categories.categories import Categories
 
 
-def make_category_inline_menu(categories: Categories) -> InlineKeyboardMarkup:
+def make_inline_menu(
+    categories: Categories | list[Group],
+) -> InlineKeyboardMarkup:
     step = 3
     keyboard = []
     for i in range(0, len(categories), step):

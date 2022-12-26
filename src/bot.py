@@ -1,119 +1,57 @@
-import re
-
 from telegram import BotCommand, Update
 from telegram.ext import (
     ApplicationBuilder,
-    CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
     ConversationHandler,
-    MessageHandler,
     PicklePersistence,
-    filters,
 )
 
-import menu.callbacks as cb
+from categories.conversation import (
+    categories_conversation,
+    send_groups_for_manage_categories,
+)
 from config import config, create_logger
-from menu.cats import (
-    add_category,
-    chouse_category_name_to_delete,
-    delete_category,
-    request_category_name_to_add,
-    send_menu_manage_categories,
+from constants.states import (
+    AUTH,
+    CAT,
+    EXPENSE_ADD,
+    EXPENSE_MANAGE,
+    GROUPS_MANAGE,
+    REPORTS,
 )
-from menu.expense import (
-    insert_expense,
-    manual_insert_expense,
-    request_expense_anount_for_category,
-    send_categories,
+from expenses.conversation_add_expense import (
+    add_expense_conversation,
+    send_groups_for_add_expenses,
 )
-from menu.manage_expense import (
-    delete_expense,
-    delete_expense_request,
-    manage_expenses,
-    move_expense,
-    move_expense_request_categories,
-    select_new_category,
+from expenses.conversation_manage_expense import (
+    expense_manage_conversation,
+    send_groups_for_manage_expenses,
 )
-from menu.reports import report_menu, select_ordering, select_report_type, send_report
-from menu.states import AUTH, CAT, DELETE_EXPENSE, MANAGE_EXPENSE, MOVE_EXPENSE, REPORTS
+from groups.conversation import groups_conversation, send_menu_manage_groups
+from groups.groups import register_user
+from reports.conversation import reports_conversation, send_group_for_report_menu
 
-nums = re.compile(r"\d+")
 logger = create_logger(__name__)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     id: int = update.effective_user.id if update.effective_user else 0
-    if id not in config.allowed_tg_ids:
-        await update.message.reply_text("Вы не авторизованы {0}".format(id))
-        return ConversationHandler.END
     await context.bot.set_my_commands(
         [
             BotCommand("add", "Записать расход"),
             BotCommand("reports", "Отчеты расходов"),
             BotCommand("cats", "Управление категориями"),
             BotCommand("manage", "Управление расходами"),
+            BotCommand("groups", "Управление группами"),
         ]
     )
-    await update.message.reply_text("Добро пожаловать в Money Tracker {0}".format(id))
+    register_user(id, update.effective_user.username)
+
+    await update.message.reply_text(
+        "Добро пожаловать в Money Tracker, теперь создайте через меню группы для учета расходов"
+    )
     return AUTH
-
-
-def create_conversation_states() -> dict:
-    menu = [
-        CommandHandler("add", send_categories),
-        CommandHandler("cats", send_menu_manage_categories),
-        CommandHandler("reports", report_menu),
-        CommandHandler("manage", manage_expenses),
-    ]
-    handlers = {
-        AUTH: [
-            CallbackQueryHandler(request_expense_anount_for_category, pattern=nums),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, insert_expense),
-            MessageHandler(
-                filters.Regex("^/offadd,.*") & filters.COMMAND, manual_insert_expense
-            ),
-            *menu,
-        ],
-        CAT: [
-            CallbackQueryHandler(request_category_name_to_add, pattern=cb.add_category),
-            MessageHandler(~filters.COMMAND, add_category),
-            CallbackQueryHandler(
-                chouse_category_name_to_delete, pattern=cb.delete_category
-            ),
-            CallbackQueryHandler(delete_category),
-            *menu,
-        ],
-        REPORTS: [
-            CallbackQueryHandler(select_report_type, pattern=cb.report_list),
-            CallbackQueryHandler(select_report_type, pattern=cb.report_total),
-            CallbackQueryHandler(select_report_type, pattern=cb.report_trend),
-            CallbackQueryHandler(select_ordering, pattern=cb.report_my),
-            CallbackQueryHandler(select_ordering, pattern=cb.report_all),
-            CallbackQueryHandler(send_report, pattern=cb.report_by_date),
-            CallbackQueryHandler(send_report, pattern=cb.report_by_amount),
-            *menu,
-        ],
-        MANAGE_EXPENSE: [
-            CallbackQueryHandler(
-                move_expense_request_categories, pattern=cb.manage_move_expense
-            ),
-            CallbackQueryHandler(
-                delete_expense_request, pattern=cb.manage_delete_expense
-            ),
-            *menu,
-        ],
-        DELETE_EXPENSE: [
-            MessageHandler(~filters.COMMAND, delete_expense),
-            *menu,
-        ],
-        MOVE_EXPENSE: [
-            CallbackQueryHandler(select_new_category, pattern=nums),
-            MessageHandler(~filters.COMMAND, move_expense),
-            *menu,
-        ],
-    }
-    return handlers
 
 
 def main() -> None:
@@ -126,12 +64,27 @@ def main() -> None:
         .build()
     )
 
+    menu = [
+        CommandHandler("add", send_groups_for_add_expenses),
+        CommandHandler("cats", send_groups_for_manage_categories),
+        CommandHandler("reports", send_group_for_report_menu),
+        CommandHandler("manage", send_groups_for_manage_expenses),
+        CommandHandler("groups", send_menu_manage_groups),
+    ]
+
     conv_handler = ConversationHandler(
         name="menu",
         persistent=True,
         entry_points=[CommandHandler("start", start)],
-        states=create_conversation_states(),
-        fallbacks=[],
+        states={
+            AUTH: [*menu],
+            CAT: [categories_conversation],
+            EXPENSE_ADD: [add_expense_conversation],
+            EXPENSE_MANAGE: [expense_manage_conversation],
+            GROUPS_MANAGE: [groups_conversation],
+            REPORTS: [reports_conversation],
+        },
+        fallbacks=[*menu],
     )
     bot.add_handler(conv_handler)
     bot.run_polling()

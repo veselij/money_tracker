@@ -1,12 +1,30 @@
 import io
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import datetime
 
 import matplotlib.pyplot as plt
 
+from backend.db import ExpenseReport
 from config import MONTH_START_DAY
-from db import ExpenseReport
-from expense_manager import TrendData
+
+
+@dataclass
+class TrendData:
+    categories: set[str]
+    months: list[str]
+    accomulted_expenses: list[dict[str, int]]
+
+    def get_chart_data(self) -> tuple[list[str], list[list[int]]]:
+        chart_data = []
+        labels = []
+        for cat in self.categories:
+            cat_month_expense = []
+            for exp in self.accomulted_expenses:
+                cat_month_expense.append(exp.get(cat, 0))
+            chart_data.append(cat_month_expense)
+            labels.append(cat)
+        return labels, chart_data
 
 
 def get_init_message(group: bool) -> str:

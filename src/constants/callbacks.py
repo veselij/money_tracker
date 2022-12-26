@@ -1,3 +1,7 @@
+import re
+
+nums = re.compile(r"\d+")
+
 delete_category = "delete_category"
 add_category = "add_category"
 
@@ -12,3 +16,5 @@ report_by_amount = "category, amount desc"
 
 manage_move_expense = "manage_move_expense"
 manage_delete_expense = "manage_delete_expense"
+
+groups_create = "groups_create"

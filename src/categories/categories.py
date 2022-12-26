@@ -1,24 +1,20 @@
-import logging
-
-from db import Category, DataBaseClient, db_client
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+from backend.db import Category, DataBaseClient
 
 
 class Categories:
-    def __init__(self, db: DataBaseClient) -> None:
+    def __init__(self, db: DataBaseClient, group_id: int) -> None:
         self._db = db
         self._categories: dict[int, Category] = {}
         self._categories_reversed: dict[str, int]
+        self._group_id = group_id
         self._load_categories()
 
     def append(self, category: str) -> None:
-        self._db.insert_category(category)
+        self._db.insert_category(category, self._group_id)
         self._load_categories()
 
     def __delitem__(self, category: int) -> None:
-        self._db.delete_category(category)
+        self._db.delete_category(category, self._group_id)
         self._load_categories()
 
     def __getitem__(self, value: int) -> Category:
@@ -33,13 +29,10 @@ class Categories:
 
     def _load_categories(self) -> None:
         self._categories = {}
-        self._db.load_categories(self._categories)
+        self._db.load_categories(self._categories, self._group_id)
         self._categories_reversed = {
             cat.name: cat.id for cat in self._categories.values()
         }
 
     def __len__(self) -> int:
         return len(self._categories)
-
-
-categories = Categories(db_client)
