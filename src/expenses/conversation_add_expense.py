@@ -37,22 +37,24 @@ async def send_groups_for_add_expenses(
 async def send_categories(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.group_id] = int(query.data)
-    categories = Categories(db_client, int(query.data))
+    context.user_data[UserData.group_id] = int(query.data.split()[1])
+
+    categories = Categories(db_client, context.user_data[UserData.group_id])
     replay_markup = make_inline_menu(categories)
+
     context.user_data[UserData.msg_id] = await query.edit_message_text(
         "Выберет категорию", reply_markup=replay_markup
     )
+
     return EXPENSE_INSERT
 
 
 @log(logger)
-@delete_old_message(logger)
 async def request_expense_anount_for_category(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
     query = update.callback_query
-    id = int(query.data)
+    id = int(query.data.split()[1])
     await query.answer()
 
     context.user_data[UserData.category_id] = id  # type: ignore
@@ -131,15 +133,17 @@ async def manual_insert_expense(
 add_expense_conversation = ConversationHandler(
     name="add_expense",
     persistent=True,
-    entry_points=[CallbackQueryHandler(send_categories, pattern=cb.nums)],
+    allow_reentry=True,
+    entry_points=[
+        CallbackQueryHandler(send_categories, pattern=cb.groups_id),
+    ],
     states={
-        EXPENSE_ADD: [CallbackQueryHandler(send_categories, pattern=cb.nums)],
         EXPENSE_INSERT: [
-            CallbackQueryHandler(request_expense_anount_for_category, pattern=cb.nums),
-            MessageHandler(filters.TEXT & ~filters.COMMAND, insert_expense),
-            MessageHandler(
-                filters.Regex("^/offadd,.*") & filters.COMMAND, manual_insert_expense
+            CallbackQueryHandler(send_categories, pattern=cb.groups_id),
+            CallbackQueryHandler(
+                request_expense_anount_for_category, pattern=cb.category_id
             ),
+            MessageHandler(filters.TEXT & ~filters.COMMAND, insert_expense),
         ],
     },
     map_to_parent={END: AUTH},

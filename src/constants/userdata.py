@@ -8,3 +8,4 @@ class UserData(Enum):
     id_map = "id_map"
     all = "all"
     func = "func"
+    group_action = "group_action"

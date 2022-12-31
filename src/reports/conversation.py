@@ -26,7 +26,7 @@ async def send_group_for_report_menu(
 async def send_report_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.group_id] = int(query.data)
+    context.user_data[UserData.group_id] = int(query.data.split()[1])
     keyboard = [
         [InlineKeyboardButton("Список", callback_data=cb.report_list)],
         [InlineKeyboardButton("Тотал", callback_data=cb.report_total)],
@@ -99,12 +99,13 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 reports_conversation = ConversationHandler(
     name="reports",
     persistent=True,
+    allow_reentry=True,
     entry_points=[
-        CallbackQueryHandler(send_report_menu, pattern=cb.nums),
+        CallbackQueryHandler(send_report_menu, pattern=cb.groups_id),
     ],
     states={
         REPORTS: [
-            CallbackQueryHandler(send_report_menu, pattern=cb.nums),
+            CallbackQueryHandler(send_report_menu, pattern=cb.groups_id),
             CallbackQueryHandler(select_report_type, pattern=cb.report_list),
             CallbackQueryHandler(select_report_type, pattern=cb.report_total),
             CallbackQueryHandler(select_report_type, pattern=cb.report_trend),

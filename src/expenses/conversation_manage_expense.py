@@ -38,7 +38,8 @@ async def send_menu_manage_expenses(
 ) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.group_id] = int(query.data)
+    context.user_data[UserData.group_id] = int(query.data.split()[1])
+
     keyboard = [
         [InlineKeyboardButton("Перенести", callback_data=cb.manage_move_expense)],
         [InlineKeyboardButton("Удалить", callback_data=cb.manage_delete_expense)],
@@ -79,7 +80,7 @@ async def select_new_category(
 ) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.category_id] = int(query.data)
+    context.user_data[UserData.category_id] = int(query.data.split()[1])
     context.user_data[UserData.msg_id] = await query.edit_message_text(
         query.message.text
         + "\n\nВведите номер или номера расходов для удаления через запятую",
@@ -153,12 +154,13 @@ async def delete_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 expense_manage_conversation = ConversationHandler(
     name="manage_expense",
     persistent=True,
+    allow_reentry=True,
     entry_points=[
-        CallbackQueryHandler(send_menu_manage_expenses, pattern=cb.nums),
+        CallbackQueryHandler(send_menu_manage_expenses, pattern=cb.groups_id),
     ],
     states={
         EXPENSE_MANAGE: [
-            CallbackQueryHandler(send_menu_manage_expenses, pattern=cb.nums),
+            CallbackQueryHandler(send_menu_manage_expenses, pattern=cb.groups_id),
             CallbackQueryHandler(
                 move_expense_request_categories, pattern=cb.manage_move_expense
             ),
@@ -167,7 +169,7 @@ expense_manage_conversation = ConversationHandler(
             ),
         ],
         EXPENSE_MOVE: [
-            CallbackQueryHandler(select_new_category, pattern=cb.nums),
+            CallbackQueryHandler(select_new_category, pattern=cb.category_id),
             MessageHandler(~filters.COMMAND, move_expense),
         ],
         EXPENSE_DELETE: [

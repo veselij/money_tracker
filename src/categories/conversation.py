@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
     CallbackQueryHandler,
     ContextTypes,
@@ -34,15 +34,14 @@ async def send_groups_for_manage_categories(
 async def send_menu_manage_categories(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    query = update.callback_query
-    await query.answer()
-    context.user_data[UserData.group_id] = int(query.data)
-
     keyboard = [
-        [InlineKeyboardButton("Добавить", callback_data=cb.add_category)],
-        [InlineKeyboardButton("Удалить", callback_data=cb.delete_category)],
+        [InlineKeyboardButton("Добавить", callback_data=cb.category_add)],
+        [InlineKeyboardButton("Удалить", callback_data=cb.category_delete)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
+    query = update.callback_query
+    await query.answer()
+    context.user_data[UserData.group_id] = int(query.data.split()[1])
     context.user_data[UserData.msg_id] = await query.edit_message_text(
         "Категории:", reply_markup=mark_up
     )
@@ -95,7 +94,7 @@ async def chouse_category_name_to_delete(
 async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
-    id = int(query.data)
+    id = int(query.data.split()[1])
     categories = Categories(db_client, context.user_data.get(UserData.group_id))
     del categories[id]
     await query.edit_message_text("Категория удалена")
@@ -105,13 +104,16 @@ async def delete_category(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 categories_conversation = ConversationHandler(
     name="categories",
     persistent=True,
-    entry_points=[CallbackQueryHandler(send_menu_manage_categories, pattern=cb.nums)],
+    allow_reentry=True,
+    entry_points=[
+        CallbackQueryHandler(send_menu_manage_categories, pattern=cb.groups_id),
+    ],
     states={
         CAT: [
-            CallbackQueryHandler(send_menu_manage_categories, pattern=cb.nums),
-            CallbackQueryHandler(request_category_name_to_add, pattern=cb.add_category),
+            CallbackQueryHandler(send_menu_manage_categories, pattern=cb.groups_id),
+            CallbackQueryHandler(request_category_name_to_add, pattern=cb.category_add),
             CallbackQueryHandler(
-                chouse_category_name_to_delete, pattern=cb.delete_category
+                chouse_category_name_to_delete, pattern=cb.category_delete
             ),
         ],
         CAT_ADD: [

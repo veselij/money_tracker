@@ -57,6 +57,18 @@ class DataBaseClient(ABC):
         ...
 
     @abstractmethod
+    def delete_group(self, group_id: int, user_id: int) -> None:
+        ...
+
+    @abstractmethod
+    def add_user_to_group(self, group_id: int, user_id: int) -> None:
+        ...
+
+    @abstractmethod
+    def delete_user_from_group(self, group_id: int, user_id: int) -> None:
+        ...
+
+    @abstractmethod
     def insert(self, expense: Expense) -> int:
         ...
 
@@ -116,11 +128,31 @@ class SqliteClient(DataBaseClient):
         self._conn.commit()
 
     def create_group(self, user_id: int, name: str) -> None:
-        self._cur.execute(f"INSERT OR IGNORE INTO groups(NAME) VALUES('{name}')")
+        self._cur.execute(
+            f"INSERT OR REPLACE INTO groups(NAME, CREATOR, activerecord) VALUES('{name}', {user_id}, 1)"
+        )
         self._conn.commit()
         group_id = self._cur.lastrowid
         self._cur.execute(
             f"INSERT OR IGNORE INTO user_groups(USER_ID, GROUP_ID) VALUES({user_id}, {group_id})"
+        )
+        self._conn.commit()
+
+    def delete_group(self, group_id: int, user_id: int) -> None:
+        self._cur.execute(
+            f"UPDATE groups SET activerecord = 0 WHERE id = {group_id} and CREATOR = {user_id}"
+        )
+        self._conn.commit()
+
+    def add_user_to_group(self, group_id: int, user_id: int) -> None:
+        self._cur.execute(
+            f"INSERT OR IGNORE INTO user_groups(USER_ID, GROUP_ID) VALUES({user_id}, {group_id})"
+        )
+        self._conn.commit()
+
+    def delete_user_from_group(self, group_id: int, user_id: int) -> None:
+        self._cur.execute(
+            f"DELETE FROM user_groups WHERE group_id = {group_id} and USER_ID = {user_id}"
         )
         self._conn.commit()
 
@@ -242,7 +274,7 @@ class SqliteClient(DataBaseClient):
         self._cur.execute(
             f"SELECT ug.GROUP_ID, g.NAME from user_groups ug \
                 LEFT JOIN groups g ON ug.GROUP_ID = g.ID \
-                WHERE USER_ID = {user_id}"
+                WHERE USER_ID = {user_id} and g.activerecord = 1"
         )
         groups = []
         for row in self._cur.fetchall():

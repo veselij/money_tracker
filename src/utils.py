@@ -14,7 +14,11 @@ def make_inline_menu(
     for i in range(0, len(categories), step):
         sub_keys = []
         for cat in islice(categories, i, i + step):
-            sub_keys.append(InlineKeyboardButton(cat.name, callback_data=str(cat.id)))
+            sub_keys.append(
+                InlineKeyboardButton(
+                    cat.name, callback_data=f"{cat.__class__.__name__.lower()} {cat.id}"
+                )
+            )
         keyboard.append(sub_keys)
 
     replay_markup = InlineKeyboardMarkup(keyboard)

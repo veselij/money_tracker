@@ -39,7 +39,11 @@ def log(logger: logging.Logger):
         @wraps(func)
         async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text = update.message.text if update.message else ""
-            data = update.callback_query.data if update.callback_query else ""
+            data = (
+                update.callback_query.data
+                if update.callback_query
+                else "no callback_query"
+            )
             if context.user_data:
                 userdata = ";".join([f"{k}:{v}" for k, v in context.user_data.items()])
             else:
