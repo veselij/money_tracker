@@ -1,42 +1,37 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import CallbackQueryHandler, ContextTypes, ConversationHandler
 
+from backend.db import ReportRequest, User
 from config import create_logger
 from constants import callbacks as cb
 from constants.states import AUTH, REPORTS
 from constants.userdata import UserData
 from decorators import delete_old_message, log
-from groups.groups import send_groups
+from groups.groups import save_group, send_groups
 from reports.reports import func_map
+from utils import send_message
 
 logger = create_logger(__name__)
 END = ConversationHandler.END
 
 
 @log(logger)
-@delete_old_message(logger)
 async def send_group_for_report_menu(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    await send_groups(update, context)
-    return REPORTS
+    return await send_groups(update, context, send_report_menu, REPORTS)
 
 
 @log(logger)
 async def send_report_menu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    query = update.callback_query
-    await query.answer()
-    context.user_data[UserData.group_id] = int(query.data.split()[1])
+    await save_group(update, context)
     keyboard = [
         [InlineKeyboardButton("Список", callback_data=cb.report_list)],
         [InlineKeyboardButton("Тотал", callback_data=cb.report_total)],
         [InlineKeyboardButton("Тренд", callback_data=cb.report_trend)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        "Выберете отчет расходов", reply_markup=mark_up
-    )
-
+    await send_message(update, context, "Выберете отчет расходов", mark_up)
     return REPORTS
 
 
@@ -51,10 +46,7 @@ async def select_report_type(update: Update, context: ContextTypes.DEFAULT_TYPE)
         [InlineKeyboardButton("Общие", callback_data=cb.report_all)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        "Выберете чьи расходы", reply_markup=mark_up
-    )
-
+    await send_message(update, context, "Выберете чьи расходы", mark_up)
     return REPORTS
 
 
@@ -73,9 +65,7 @@ async def select_ordering(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         [InlineKeyboardButton("По расходу", callback_data=cb.report_by_amount)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    context.user_data["msg"] = await query.edit_message_text(
-        "Выберете сортировку", reply_markup=mark_up
-    )
+    await send_message(update, context, "Выберете сортировку", mark_up)
 
     return REPORTS
 
@@ -88,10 +78,14 @@ async def send_report(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     func = func_map[context.user_data[UserData.func]]
     all = context.user_data[UserData.all]
-    group_id = context.user_data[UserData.group_id]
-    context.user_data[UserData.msg_id] = await func(
-        query, int(update.effective_user.id), group_id, all, query.data
+    group = context.user_data[UserData.group]
+    report = ReportRequest(
+        user=User(int(update.effective_user.id)),
+        group=group,
+        ordering=query.data,
+        all=all,
     )
+    context.user_data[UserData.msg_id] = await func(query, report)
 
     return END
 
@@ -102,6 +96,13 @@ reports_conversation = ConversationHandler(
     allow_reentry=True,
     entry_points=[
         CallbackQueryHandler(send_report_menu, pattern=cb.groups_id),
+        CallbackQueryHandler(select_report_type, pattern=cb.report_list),
+        CallbackQueryHandler(select_report_type, pattern=cb.report_total),
+        CallbackQueryHandler(select_report_type, pattern=cb.report_trend),
+        CallbackQueryHandler(select_ordering, pattern=cb.report_my),
+        CallbackQueryHandler(select_ordering, pattern=cb.report_all),
+        CallbackQueryHandler(send_report, pattern=cb.report_by_date),
+        CallbackQueryHandler(send_report, pattern=cb.report_by_amount),
     ],
     states={
         REPORTS: [

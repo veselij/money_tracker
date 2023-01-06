@@ -36,7 +36,7 @@ logger = create_logger(__name__)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    id: int = update.effective_user.id if update.effective_user else 0
+    id: int = update.effective_user.id  # type: ignore
     await context.bot.set_my_commands(
         [
             BotCommand("add", "Записать расход"),
@@ -46,10 +46,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             BotCommand("groups", "Управление группами"),
         ]
     )
-    register_user(id, update.effective_user.username)
+    register_user(id, update.effective_user.username)  # type: ignore
 
     await update.message.reply_text(
-        "Добро пожаловать в Money Tracker, теперь создайте через меню группы для учета расходов"
+        f"Добро пожаловать в Money Tracker, теперь создайте через меню группы для учета расходов или попросите добавить вас в группу, ваш user_id {id}"  # type: ignore
     )
     return AUTH
 
@@ -75,8 +75,8 @@ def main() -> None:
     conv_handler = ConversationHandler(
         name="menu",
         persistent=True,
-        entry_points=[CommandHandler("start", start)],
-        states={
+        entry_points=[CommandHandler("start", start)],  # type: ignore
+        states={  # type: ignore
             AUTH: [*menu],
             CAT: [categories_conversation],
             EXPENSE_ADD: [add_expense_conversation],
@@ -84,7 +84,7 @@ def main() -> None:
             GROUPS_MANAGE: [groups_conversation],
             REPORTS: [reports_conversation],
         },
-        fallbacks=[*menu],
+        fallbacks=[*menu],  # type: ignore
     )
     bot.add_handler(conv_handler)
     bot.run_polling()

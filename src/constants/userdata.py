@@ -2,9 +2,9 @@ from enum import Enum
 
 
 class UserData(Enum):
-    group_id = "group_id"
+    group = "group"
     msg_id = "msg_id"
-    category_id = "category_id"
+    category = "category"
     id_map = "id_map"
     all = "all"
     func = "func"

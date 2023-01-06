@@ -8,7 +8,7 @@ from telegram.ext import (
 )
 
 import constants.callbacks as cb
-from backend.db import db_client
+from backend.db import Group, User, db_client
 from config import create_logger
 from constants.states import (
     AUTH,
@@ -18,16 +18,15 @@ from constants.states import (
     GROUPS_REMOVE_USER,
 )
 from constants.userdata import UserData
-from decorators import delete_old_message, log
+from decorators import log
 from groups.groups import add_user_to_group, delete_group, delete_user_from_group
-from utils import make_inline_menu
+from utils import make_inline_menu, send_message
 
 logger = create_logger(__name__)
 END = ConversationHandler.END
 
 
 @log(logger)
-@delete_old_message(logger)
 async def send_menu_manage_groups(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
@@ -42,9 +41,7 @@ async def send_menu_manage_groups(
         ],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    context.user_data[UserData.msg_id] = await context.bot.send_message(
-        update.effective_user.id, "Что сделать с группами", reply_markup=mark_up
-    )
+    await send_message(update, context, "Что сделать с группами", mark_up)
     return GROUPS_MANAGE
 
 
@@ -56,10 +53,7 @@ async def chouse_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     groups = db_client.get_user_groups(update.effective_user.id)
     replay_markup = make_inline_menu(groups)
     context.user_data[UserData.group_action] = query.data
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        "Выберете группу", reply_markup=replay_markup
-    )
-
+    await send_message(update, context, "Выберете группу", replay_markup)
     return GROUPS_MANAGE
 
 
@@ -69,64 +63,59 @@ async def perform_group_action(
 ) -> int:
     query = update.callback_query
     await query.answer()
+
     action = context.user_data.get(UserData.group_action)
-    group_id = int(query.data.split()[1])
-    context.user_data[UserData.group_id] = group_id
+    group = Group(int(query.data.split()[1]))
+    context.user_data[UserData.group] = group
+
     message = ""
+    status = END
     if action == cb.groups_add_user:
         message = "Введите user id"
-        context.user_data[UserData.msg_id] = await query.edit_message_text(message)
-        return GROUPS_ADD_USER
+        status = GROUPS_ADD_USER
     elif action == cb.groups_remove_user:
         message = "Введите user id"
-        context.user_data[UserData.msg_id] = await query.edit_message_text(message)
-        return GROUPS_REMOVE_USER
+        status = GROUPS_REMOVE_USER
     elif action == cb.groups_delete:
-        delete_group(group_id, update.effective_user.id)
+        delete_group(group)
         message = "Группа удалена"
-    context.user_data[UserData.msg_id] = await query.edit_message_text(message)
-    return END
+    await send_message(update, context, message)
+    return status
 
 
 @log(logger)
 async def request_group_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        "Введите название категории"
-    )
+    await send_message(update, context, "Введите название категории")
     return GROUPS_CREATE
 
 
 @log(logger)
-@delete_old_message(logger)
 async def create_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    group = update.message.text
-    db_client.create_group(update.effective_user.id, group)
-    context.user_data[UserData.msg_id] = await update.message.reply_text(
-        f"Группа {group} созадана"
-    )
+    group_name = update.message.text
+    db_client.create_group(update.effective_user.id, group_name)
+    await send_message(update, context, f"Группа {group_name} созадана")
     return END
 
 
 @log(logger)
-@delete_old_message(logger)
 async def add_user(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     try:
         user_id = int(update.message.text)
     except TypeError as e:
         logger.exception(e)
-        context.user_data[UserData.msg_id] = await update.message.reply_text(
-            "Некорректный user id"
-        )
+        await send_message(update, context, "Некорректный user id")
         return END
-    add_user_to_group(context.user_data.get(UserData.group_id), user_id)
-    context.user_data[UserData.msg_id] = await update.message.reply_text("Готово")
+    if not add_user_to_group(context.user_data.get(UserData.group), User(user_id)):
+        message = "Пользователь не зарегистрирован в боте."
+    else:
+        message = "Готово"
+    await send_message(update, context, message)
     return END
 
 
 @log(logger)
-@delete_old_message(logger)
 async def remove_user_from_group(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
@@ -134,12 +123,10 @@ async def remove_user_from_group(
         user_id = int(update.message.text)
     except TypeError as e:
         logger.exception(e)
-        context.user_data[UserData.msg_id] = await update.message.reply_text(
-            "Некорректный user id"
-        )
+        await send_message(update, context, "Некорректный user id")
         return END
-    delete_user_from_group(context.user_data.get(UserData.group_id), user_id)
-    context.user_data[UserData.msg_id] = await update.message.reply_text("Готово")
+    delete_user_from_group(context.user_data.get(UserData.group), User(user_id))
+    await send_message(update, context, "готово")
     return END
 
 

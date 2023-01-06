@@ -14,9 +14,11 @@ logger = create_logger(__name__)
 def delete_old_message(logger: logging.Logger):
     def inner(func):
         @wraps(func)
-        async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-            if context.user_data:
-                old_msg_id = context.user_data.get(UserData.msg_id, None)
+        async def wrapper(
+            update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs
+        ):
+            if UserData.msg_id in context.user_data:
+                old_msg_id = context.user_data.pop(UserData.msg_id)
                 if old_msg_id and update.effective_user:
                     if isinstance(old_msg_id, Message):
                         old_msg_id = old_msg_id.id
@@ -27,7 +29,7 @@ def delete_old_message(logger: logging.Logger):
                     except BadRequest as e:
                         logger.exception(e)
                         pass
-            return await func(update, context)
+            return await func(update, context, *args, **kwargs)
 
         return wrapper
 

@@ -8,47 +8,40 @@ from telegram.ext import (
 )
 
 import constants.callbacks as cb
-from backend.db import db_client
+from backend.db import Category, ReportRequest, User, db_client
 from categories.categories import Categories
 from config import create_logger
 from constants.states import AUTH, EXPENSE_DELETE, EXPENSE_MANAGE, EXPENSE_MOVE
 from constants.userdata import UserData
-from decorators import delete_old_message, log
+from decorators import log
 from expenses.expenses import ExpenseManager
-from groups.groups import send_groups
+from groups.groups import save_group, send_groups
 from reports.reports import get_expenses_list_with_ids
-from utils import make_inline_menu
+from utils import make_inline_menu, send_message, validate_message_expense_ids
 
 logger = create_logger(__name__)
 END = ConversationHandler.END
 
 
 @log(logger)
-@delete_old_message(logger)
 async def send_groups_for_manage_expenses(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    await send_groups(update, context)
-    return EXPENSE_MANAGE
+    return await send_groups(update, context, send_menu_manage_expenses, EXPENSE_MANAGE)
 
 
 @log(logger)
 async def send_menu_manage_expenses(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    query = update.callback_query
-    await query.answer()
-    context.user_data[UserData.group_id] = int(query.data.split()[1])
+    await save_group(update, context)
 
     keyboard = [
         [InlineKeyboardButton("Перенести", callback_data=cb.manage_move_expense)],
         [InlineKeyboardButton("Удалить", callback_data=cb.manage_delete_expense)],
     ]
     mark_up = InlineKeyboardMarkup(keyboard)
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        "Что сделать с расходами", reply_markup=mark_up
-    )
-
+    await send_message(update, context, "Что сделать с расходами", mark_up)
     return EXPENSE_MANAGE
 
 
@@ -56,20 +49,11 @@ async def send_menu_manage_expenses(
 async def move_expense_request_categories(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    query = update.callback_query
-    await query.answer()
-    group_id = context.user_data.get(UserData.group_id)
-    expenses, id_map = get_expenses_list_with_ids(
-        update.effective_user.id,
-        group_id,
-        False,
-        cb.report_by_date,
-    )
-    context.user_data[UserData.id_map] = id_map
-    categories = Categories(db_client, group_id)
-    replay_markup = make_inline_menu(categories)
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        f"{expenses}\n\nВыберете новую категорию", reply_markup=replay_markup
+
+    message, replay_markup = await _build_id_map(update, context)
+
+    await send_message(
+        update, context, f"{message}\n\nВыберете новую категорию", replay_markup
     )
     return EXPENSE_MOVE
 
@@ -80,8 +64,11 @@ async def select_new_category(
 ) -> int:
     query = update.callback_query
     await query.answer()
-    context.user_data[UserData.category_id] = int(query.data.split()[1])
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
+    context.user_data[UserData.category] = Category(int(query.data.split()[1]))
+
+    await send_message(
+        update,
+        context,
         query.message.text
         + "\n\nВведите номер или номера расходов для удаления через запятую",
     )
@@ -89,26 +76,22 @@ async def select_new_category(
 
 
 @log(logger)
-@delete_old_message(logger)
 async def move_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     id_map = context.user_data.get(UserData.id_map)
-    new_category = context.user_data.get(UserData.category_id)
-    ids = update.message.text.split(",")
+    new_category = context.user_data.get(UserData.category)
+    ids = validate_message_expense_ids(update.message.text, id_map)
+    if not ids:
+        await send_message(update, context, "неверный формат, попробуйте снова")
+        return END
+
+    expense_manger = ExpenseManager(
+        db_client,
+        User(update.effective_user.id),
+        context.user_data.get(UserData.group),
+    )
     for id in ids:
-        try:
-            expense_id = id_map.get(int(id))
-        except ValueError as e:
-            logger.critical(e)
-            continue
-        if not expense_id:
-            continue
-        expense_manger = ExpenseManager(
-            db_client,
-            update.effective_user.id,
-            context.user_data.get(UserData.group_id),
-        )
-        expense_manger.move_expense(expense_id, new_category)
-    await update.message.reply_text("готово")
+        expense_manger.move_expense(id, new_category.id)
+    await send_message(update, context, "готово")
     return END
 
 
@@ -116,39 +99,46 @@ async def move_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def delete_expense_request(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    query = update.callback_query
-    await query.answer()
-    expenses, id_map = get_expenses_list_with_ids(
-        update.effective_user.id,
-        context.user_data.get(UserData.group_id),
-        False,
-        cb.report_by_date,
-    )
-    context.user_data[UserData.id_map] = id_map
-    context.user_data[UserData.msg_id] = await query.edit_message_text(
-        f"{expenses}\n\nВведите номер или номера расходов для удаления через запятую",
+    message, _ = await _build_id_map(update, context)
+    await send_message(
+        update,
+        context,
+        f"{message}\n\nВведите номер или номера расходов для удаления через запятую",
     )
     return EXPENSE_DELETE
 
 
 @log(logger)
-@delete_old_message(logger)
 async def delete_expense(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     id_map = context.user_data.get(UserData.id_map)
-    ids = update.message.text.split(",")
+    ids = validate_message_expense_ids(update.message.text, id_map)
+    if not ids:
+        await send_message(update, context, "неверный формат, попробуйте снова")
+        return END
+    expense_manger = ExpenseManager(
+        db_client,
+        User(update.effective_user.id),
+        context.user_data.get(UserData.group),
+    )
     for id in ids:
-        expense_manger = ExpenseManager(
-            db_client,
-            update.effective_user.id,
-            context.user_data.get(UserData.group_id),
-        )
-        try:
-            expense_manger.del_expense(id_map.get(int(id)))
-        except ValueError as e:
-            logger.critical(e)
-            continue
-    context.user_data[UserData.msg_id] = await update.message.reply_text("готово")
+        expense_manger.del_expense(id)
+    await send_message(update, context, "готово")
     return END
+
+
+async def _build_id_map(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> tuple[str, InlineKeyboardMarkup]:
+    query = update.callback_query
+    await query.answer()
+    group = context.user_data.get(UserData.group)
+    expenses, id_map = get_expenses_list_with_ids(
+        ReportRequest(User(update.effective_user.id), group, cb.report_by_date)
+    )
+    context.user_data[UserData.id_map] = id_map
+    categories = Categories(db_client, group)
+    replay_markup = make_inline_menu(categories)
+    return expenses, replay_markup
 
 
 expense_manage_conversation = ConversationHandler(
@@ -157,6 +147,10 @@ expense_manage_conversation = ConversationHandler(
     allow_reentry=True,
     entry_points=[
         CallbackQueryHandler(send_menu_manage_expenses, pattern=cb.groups_id),
+        CallbackQueryHandler(
+            move_expense_request_categories, pattern=cb.manage_move_expense
+        ),
+        CallbackQueryHandler(delete_expense_request, pattern=cb.manage_delete_expense),
     ],
     states={
         EXPENSE_MANAGE: [
