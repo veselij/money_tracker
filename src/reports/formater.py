@@ -58,10 +58,12 @@ def prepare_expense_message(
     return message, chart_data
 
 
-def prepare_expense_message_last(expenses: dict[int, Expense], user: User) -> str:
+def prepare_expense_message_last(
+    expenses: dict[int, Expense], user: User, all: bool
+) -> str:
     message = get_init_message(user)
     for i, (_, expense) in enumerate(expenses.items(), 1):
-        if not user or user == expense.user:
+        if all or user == expense.user:
             if expense.comment:
                 message += f"{i:03}. {expense.category.name}: {expense.amount/1000:0.1f} т.р. ({expense.comment})\n"
             else:
