@@ -58,5 +58,5 @@ def validate_message_expense_ids(message: str, id_map: dict) -> list[int] | None
             return None
         if expense_id not in id_map:
             continue
-        expenses.append(expense_id)
+        expenses.append(id_map[expense_id])
     return expenses
