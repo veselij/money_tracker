@@ -51,7 +51,7 @@ async def get_expenses_total(query: CallbackQuery, report: ReportRequest) -> Mes
 
 async def get_expenses_list(query: CallbackQuery, report: ReportRequest) -> Message:
     expenses = db_client.get_expenses_last(report)
-    message = prepare_expense_message_last(expenses, report.user)
+    message = prepare_expense_message_last(expenses, report.user, report.all)
     msg = await query.get_bot().send_message(report.user.id, message)
     return msg
 
@@ -73,6 +73,6 @@ func_map = {
 
 def get_expenses_list_with_ids(report: ReportRequest) -> tuple[str, dict]:
     expenses = db_client.get_expenses_last(report)
-    message = prepare_expense_message_last(expenses, report.user)
+    message = prepare_expense_message_last(expenses, report.user, report.all)
     id_map = {i: id for i, id in enumerate(expenses, 1)}
     return (message, id_map)
