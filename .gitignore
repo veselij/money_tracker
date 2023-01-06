@@ -6,4 +6,5 @@ src/menu/__pycache__/
 persistance_states
 /logs
 *.pyc
+/backup
 

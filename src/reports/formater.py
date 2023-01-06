@@ -54,7 +54,7 @@ def prepare_expense_message(
         amount = _filter_user_expenses(expense, user, all)
         message += f"{category.name}: {amount} руб\n"
         chart_data[category.name] = amount
-    message += f"\nВсего потрачено: {sum(chart_data.values()):n} руб"
+    message += f"\nВсего потрачено: {sum(chart_data.values()):n} т.руб"
     return message, chart_data
 
 
@@ -81,7 +81,7 @@ def prepare_expense_message_month_trend(
         amount = 0.0
         for expenses_per_category in expenses.values():
             amount += _filter_user_expenses(expenses_per_category, user, all)
-        message += f"{month}: {amount:.1} руб\n"
+        message += f"{month}: {amount:n} тыс.руб\n"
 
     return message
 
@@ -102,7 +102,7 @@ def generate_trend_chart(trend_expenses: TrendData, user: User, all: bool) -> by
         cellText=series, rowLabels=labels, colLabels=trend_expenses.months, loc="bottom"
     )
     table.scale(1, 1.5)
-    plt.subplots_adjust(left=0.2, bottom=0.2)
+    plt.subplots_adjust(left=0.2, bottom=0.4)
     plt.xticks([])
 
     file = _generate_file_chart()

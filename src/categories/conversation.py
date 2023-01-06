@@ -25,7 +25,7 @@ END = ConversationHandler.END
 async def send_groups_for_manage_categories(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> int:
-    return await send_groups(update, context, send_groups_for_manage_categories, CAT)
+    return await send_groups(update, context, send_menu_manage_categories, CAT)
 
 
 @log(logger)
